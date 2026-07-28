@@ -10,8 +10,10 @@ browserbasierte Neuimplementierung und deren automatische Tests dienen.
 
 Die wichtigsten Ergebnisse sind direkt aus dem Maschinencode und den
 eingebetteten Delphi-Formularressourcen abgeleitet. Das mitgelieferte JPEG
-`NucReact_1_1.jpg` dient nur zum visuellen Abgleich. Die EXE wurde in diesem
-Analyseschritt nicht ausgeführt.
+`NucReact_1_1.jpg` und drei später unter Wine aufgenommene Screenshots dienen
+zum visuellen Abgleich. Die dynamischen Screenshots bestätigen insbesondere
+die beiden Dichteverteilungsfenster, die Stabdarstellung und mehrere
+Anzeigezustände.
 
 Kennzeichnung der Sicherheit einer Aussage:
 
@@ -471,9 +473,11 @@ einem höheren Messbereich auszufahren, erscheint:
 
 ### Horizontale und vertikale Dichteverteilungen
 
-**Bestätigt:** Die beiden Diagramme sind keine momentanen vollständigen
-2D-Auswertungen, sondern eindimensionale Histogramme durch ein 99 Zellen
-breites Kreuz im Reaktormittelpunkt.
+**Statisch und durch Wine-Screenshots bestätigt:** Die Knöpfe `horizontal` und
+`vertikal` öffnen jeweils ein eigenes Histogrammfenster. Die beiden sichtbaren
+Diagramme sind keine momentanen vollständigen 2D-Auswertungen, sondern
+eindimensionale Histogramme durch ein 99 Zellen breites Kreuz im
+Reaktormittelpunkt.
 
 Für die horizontale Verteilung werden nur Neutronen mit
 
@@ -511,13 +515,31 @@ schnell_normiert[i] = schnell[i] / Maximum
 langsam_normiert[i] = langsam[i] / Maximum
 ```
 
-Die Diagrammamplitude beträgt 100 Pixel. Langsame Neutronen werden grau,
-schnelle Neutronen rot gezeichnet. Benachbarte Arraywerte `i-1` und `i`
-werden durch Liniensegmente verbunden.
+Die Diagrammamplitude beträgt 100 Pixel. Die verwendeten Kurvenfarben sind:
 
-Das Spaltungsarray wird zwar gefüllt und bei der nächsten Messung gelöscht,
-aber im vorhandenen Zeichencode nicht dargestellt. Dies ist sehr
-wahrscheinlich ein unvollständig gebliebenes Feature.
+| Messung | langsame Neutronen | schnelle Neutronen |
+|---|---|---|
+| aktuelle Messung | Schwarz, RGB `(0,0,0)` | Rot, RGB `(255,0,0)` |
+| vorherige Messung | Grau, RGB `(176,176,176)` | Hellrot, RGB `(255,176,176)` |
+
+Benachbarte Arraywerte `i-1` und `i` werden durch Liniensegmente verbunden.
+
+Beim ersten Öffnen wird nach der 100-Schritt-Messung die aktuelle langsame
+Kurve schwarz und die aktuelle schnelle Kurve rot gezeichnet. Wird der
+entsprechende Knopf bei bereits geöffnetem Fenster erneut betätigt, zeichnet
+die Anwendung die vorhandene Messung zunächst als blassgraue und hellrote
+Vergleichskurve neu. Anschließend werden die Zähler gelöscht und eine weitere
+100-Schritt-Messung gestartet, deren neue Kurven wieder schwarz und rot
+darübergelegt werden. Das Fenster kann somit die unmittelbar vorherige und die
+aktuelle Messung vergleichen.
+
+Zusätzlich zu den beiden sichtbar dargestellten Neutronenkurven existiert
+intern ein drittes Array für Spaltorte. Dieses **zusätzliche
+Spaltort-Hilfsarray** wird zwar gefüllt und bei der nächsten Messung gelöscht,
+aber im vorhandenen Zeichencode nicht als dritte Kurve dargestellt. Das
+bedeutet ausdrücklich nicht, dass die horizontalen oder vertikalen
+Neutronendichte-Histogramme fehlen; beide sind vollständig implementiert und
+in den Wine-Screenshots sichtbar.
 
 Die horizontalen und vertikalen Routinen sind strukturell identisch; lediglich
 Auswahlband, Indexrichtung und Bildschirmorientierung unterscheiden sich.
@@ -624,7 +646,8 @@ behobene Altfehler dokumentiert werden:
 - Die Beschriftung „Spaltungen gesamt“ zeigt den Spaltungszähler des aktuellen
   Timerdurchlaufs. Der Zähler wird zu Beginn jedes Durchlaufs auf null gesetzt
   und ist somit nicht kumulativ.
-- Ein Histogramm für Spaltorte wird gesammelt, aber niemals gezeichnet.
+- Zusätzlich zu den sichtbaren Neutronendichte-Histogrammen wird ein drittes
+  Array für Spaltorte gesammelt, aber nicht als eigene Kurve gezeichnet.
 - Beim normalen Einschalten wird die Quelle als `8 × 8`-Quadrat gezeichnet.
   Nach dem Ausfahren der Sicherheitsstäbe wird nur ein inneres
   `5 × 5`-Quadrat erneut gezeichnet.
@@ -706,6 +729,24 @@ Konstanten ableiten:
     `213 … 311`.
 17. Schnelle und langsame Histogramme werden auf ein gemeinsames Maximum
     normiert.
+
+## Dynamischer Abgleich mit Wine-Screenshots
+
+Die vom Benutzer unter Wine aufgenommenen Bilder liefern eine erste
+Laufzeitbestätigung der statischen Analyse:
+
+| Screenshot | bestätigte Beobachtungen |
+|---|---|
+| [`20-47-54`](../Screenshot_2026-07-28_20-47-54.png) | deutsche Oberfläche, 525-Pixel-Reaktorbild, Messbereich `10²`, vollständig eingefahrene Stäbe und laufender Spaltungszähler |
+| [`20-49-04`](../Screenshot_2026-07-28_20-49-04.png) | teilweise ausgefahrene Steuerstäbe bei angezeigten `44,1 %`; die sechs Steuerstabstreifen und die entfernte Sicherheitsstabgruppe entsprechen der rekonstruierten 6/7-Aufteilung |
+| [`20-53-25`](../Screenshot_2026-07-28_20-53-25.png) | gleichzeitig geöffnetes horizontales und vertikales Histogramm, schwarze langsame und rote schnelle Neutronenkurve sowie die statisch berechneten stark länglichen Fensterproportionen |
+
+Besonders der dritte Screenshot widerlegt keine statische Aussage zur
+Dichteanzeige, sondern bestätigt deren vollständige Implementierung. Die
+frühere Kurzfassung „Spalthistogramm nicht dargestellt“ war missverständlich:
+Nicht dargestellt wird ausschließlich das zusätzliche interne
+Spaltort-Hilfsarray. Die beiden vom Benutzer aufrufbaren
+Neutronendichte-Histogramme funktionieren sichtbar.
 
 ## Offene Punkte
 
