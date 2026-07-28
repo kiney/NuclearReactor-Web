@@ -40,6 +40,16 @@ wahrscheinlich kein verlässliches Erstellungsdatum. Die importierten
 VCL-/Windows-Funktionen und die eingebetteten Delphi-Klassennamen sind deutlich
 aussagekräftiger.
 
+Die Anwendung bindet ihre Delphi-Laufzeit statisch ein. Als externe
+Windows-Bibliotheken erscheinen nur `kernel32`, `user32`, `gdi32`,
+`advapi32`, `oleaut32`, `comctl32` und `version`. Es gibt keine Netzwerk-,
+Datenbank- oder externe Physikbibliothek. Der gesamte Simulationsalgorithmus
+liegt damit in der EXE.
+
+Die VCL-Units `Themes` und `UxTheme` sowie Linkermerkmale sprechen für eine
+Delphi-Version aus der Delphi-7-Generation. Eine eindeutige
+Compiler-Versionsressource ist jedoch nicht vorhanden.
+
 ## Koordinatensystem und Reaktorgeometrie
 
 ### Simulationsraster
@@ -122,6 +132,28 @@ Ausfahrposition_in_Prozent = (461 - Stabende_y) / 397 × 100
 
 Der obere und untere Anschlag werden im Code explizit begrenzt.
 
+Das Ausfahren der Steuerstäbe ist nur möglich, wenn die Sicherheitsstäbe zuvor
+ausgefahren wurden. Einfahren ist dagegen jederzeit zulässig. Für eine
+teilweise eingefahrene Steuerstabgruppe beträgt deren Absorberfläche innerhalb
+des Kerns:
+
+```text
+A_Steuerstäbe = 24 × (Stabende_y - 64)
+```
+
+Damit ergeben sich für die diskreten Endzustände:
+
+| Zustand | Moderator | Spaltstoff | Absorber |
+|---|---:|---:|---:|
+| beide Gruppen eingefahren | 153 Spalten | 192 Spalten | 52 Spalten |
+| nur Steuerstäbe eingefahren | 181 Spalten | 192 Spalten | 24 Spalten |
+| beide Gruppen ausgefahren | 205 Spalten | 192 Spalten | 0 Spalten |
+
+„Spalten“ bezeichnet hier die flächengleiche Zahl vollständig hoher
+Materialstreifen. Bei teilweise eingefahrenen Steuerstäben ist die
+Absorberfläche entsprechend der obigen Formel nicht mehr über die volle Höhe
+verteilt.
+
 Ein SCRAM setzt das Stabende sofort auf `461` und schreibt beide Stabgruppen
 wieder als Absorber in den vollständigen Kern. Die Sicherheitsstäbe lassen
 sich nur ausfahren, wenn der Detektor im untersten Messbereich steht
@@ -186,9 +218,38 @@ Der statische Speicher ist für 100.000 Einträge ausgelegt. Inaktive Einträge
 werden nach jedem Simulationsschritt durch Kopieren aktiver Einträge
 komprimiert.
 
+Der reservierte Bereich ist exakt 2.000.020 Byte groß, also Platz für
+100.001 Strukturen zu je 20 Byte. Index 0 dient der ursprünglichen
+Pascal-Logik als unbenutzter/technischer Eintrag; die simulierten Neutronen
+beginnen bei Index 1. Die beiden 525²-Byte-Raster benötigen zusammen weitere
+551.250 Byte.
+
 Beim Programmstart werden zwei aktive schnelle Neutronen erzeugt. Ihre
 Startposition ist gleichverteilt über das gesamte Raster. Auch ihre Richtung
 wird zufällig gewählt und anschließend normiert.
+
+### Bestätigter Startzustand
+
+Nach `FormCreate` gelten folgende Zustände:
+
+| Zustand | Startwert |
+|---|---:|
+| Neutronen | 2 aktive schnelle Neutronen |
+| Steuerstabende | `y=461`, vollständig eingefahren |
+| Sicherheitsstäbe | eingefahren |
+| Neutronenquelle | aus |
+| Reflektor | aus |
+| Moderator | vorhanden |
+| Messbereich | Index 2, Maximum 100 |
+| Leistung | 0 |
+| Timerintervall | 20 ms |
+| Slow motion | aus |
+| Dichtefenster | geschlossen |
+| Oberflächensprache | Englisch |
+
+Sowohl Steuer- als auch Sicherheitsstäbe sind damit beim Start vollständig
+eingefahren. Erst die getrennten Bedienaktionen entfernen jeweils eine der
+abwechselnden Stabgruppen.
 
 ### Bewegung
 
@@ -219,10 +280,29 @@ Streuvektor nicht erneut auf Länge 5 normiert.
 
 Schnelle Neutronen werden rot, langsame Neutronen schwarz gezeichnet.
 
+### Zufallszahlengenerator
+
+**Bestätigt:** Die Anwendung verwendet den in ihrer Delphi-Laufzeit
+eingebetteten linearen Kongruenzgenerator mit einem 32-Bit-Zustand:
+
+```text
+seed_neu = (seed_alt × 0x08088405 + 1) mod 2³²
+random   = seed_neu / 2³²
+```
+
+Der Multiplikator ist dezimal `134.775.813`; der Skalierungsfaktor ist exakt
+`2⁻³² = 2,3283064365386963 × 10⁻¹⁰`. Das Ergebnis liegt damit in `[0,1)`.
+
+Beim Aufbau der Simulation wird vorher Delphis `Randomize` aufgerufen. Der
+Startseed stammt deshalb aus einer Systemzeitfunktion und ist zwischen
+Programmläufen nicht konstant. Für eine kompatible Browserfassung kann
+derselbe Generator leicht mit 32-Bit-Überlauf nachgebildet werden. Für Tests
+sollte zusätzlich eine explizite Seed-Schnittstelle vorgesehen werden.
+
 ### Wechselwirkungen nach Material
 
-Die Simulation verwendet `Random()`-ähnliche, gleichverteilte Zufallswerte aus
-`[0,1)`.
+Die Simulation verwendet die oben beschriebenen gleichverteilten Zufallswerte
+aus `[0,1)`.
 
 #### Moderator, Typ 1
 
@@ -265,6 +345,12 @@ p_absorption = 0,005 × b / 10
 ```
 
 Sie steigt von 0 % bei `b=0` bis 0,5 % bei `b=10`.
+
+Die Option „Burnout/Abbrand“ ist damit nicht nur eine optische Anzeige. Ist sie
+deaktiviert, wird `b` niemals erhöht: Die Spaltwahrscheinlichkeit bleibt
+dauerhaft bei 2 % und die zusätzliche Absorptionswahrscheinlichkeit bei 0 %.
+Das Einschalten aktiviert gleichzeitig die physikalische
+Brennstofferschöpfung und ihre Farbdarstellung.
 
 #### Absorber, Typ 3
 
@@ -324,32 +410,117 @@ dividiert:
 100 → 1.000 → 10.000 → 100.000
 ```
 
-Die Zahl aktiver Neutronen wird pro Timerdurchlauf an den Detektor übergeben.
-Die Oberfläche warnt beziehungsweise reagiert auf Schwellen von 90 und 3 im
-vom Gauge zurückgegebenen Anzeigewert. Die eingebetteten Meldungen benennen
-diese Schwellen als:
+Die Zahl der am Anfang des Durchlaufs vorhandenen aktiven Neutronen wird als
+Fortschrittswert eingetragen. Neutronen, die während desselben Durchlaufs
+deaktiviert werden, wirken sich deshalb erst im nächsten Durchlauf auf die
+Anzeige aus.
+
+Die intern mitgelieferte `TGauge`-Implementierung konnte ebenfalls statisch
+rekonstruiert werden. Sie begrenzt den Fortschrittswert auf
+`Minimum … Maximum` und liefert als Anzeigewert:
+
+```text
+Detektorprozent =
+    trunc(100 × (Fortschritt - Minimum) / (Maximum - Minimum))
+```
+
+Hier ist `Minimum=0`. `trunc` schneidet in Richtung null ab; bei den hier nur
+positiven Werten entspricht das dem Abrunden. Ein Fortschritt oberhalb des
+Messbereichsmaximums wird vorher auf das Maximum begrenzt und ergibt somit
+100 %.
+
+Die Detektorfarbe wechselt bei einem Wert strikt über 80 % von Schwarz nach
+Rot und bei einem Wert strikt unter 80 % wieder von Rot nach Schwarz. Bei
+exakt 80 % bleibt die bisherige Farbe erhalten.
+
+Die eingebetteten Warnmeldungen benennen die Schutzschwellen als:
 
 - „Neutron Density > 90 % in selected measuring range“
 - „Neutron Density < 3 % in selected measuring range“
 
-**Noch zu prüfen:** Die exakte Rundungs- und Sättigungslogik innerhalb der
-Delphi-Komponente `TGauge` sollte durch einen dynamischen Vergleichstest
-bestätigt werden.
-
 ### Automatische Abschaltungen
 
-Im Code und in den eingebetteten Texten sind folgende Schutzbedingungen
-erkennbar:
+**Bestätigt:** Eine automatische Abschaltung erfolgt unter exakt folgenden
+Bedingungen, sofern die Sicherheitsstäbe zuvor ausgefahren waren:
 
-- Leistung über 120 %;
-- Neutronendichte über 90 % im gewählten Messbereich;
-- Neutronendichte unter 3 % im gewählten Messbereich unter einer zusätzlichen
-  Bereichs-/Quellenbedingung;
-- manuell ausgelöster SCRAM.
+```text
+Detektorprozent > 90
+oder
+(Detektorprozent < 3 und Messbereichsmaximum > 100)
+oder
+Leistung > 120
+```
 
-Die exakte UI-Abfolge der Unterbereichsabschaltung ist noch dynamisch zu
-verifizieren. Das physische Ergebnis der Abschaltung ist dagegen eindeutig:
-Absorberzellen werden bis zur Unterkante des Kerns eingetragen.
+Die Unterbereichsabschaltung verhindert also den Betrieb in einem zu hohen
+Messbereich, wenn die Anzeige dort unter 3 % fällt. Im niedrigsten Bereich
+mit Maximum 100 ist diese Bedingung bewusst deaktiviert.
+
+Alle Vergleiche sind strikt. Genau 90 %, 3 % oder 120 lösen die jeweilige
+Schutzfunktion nicht aus.
+
+Bei einer Abschaltung werden:
+
+- beide Absorbergruppen vollständig bis `y=461` eingetragen;
+- die Sicherheitskreis-Anzeige rot eingefärbt;
+- im Meldungsfeld die auslösende Ursache angezeigt.
+
+Für die manuelle Auslösung wird „Handauslösung“ beziehungsweise
+„Manually Triggered Scram“ verwendet. Beim Versuch, die Sicherheitsstäbe in
+einem höheren Messbereich auszufahren, erscheint:
+„Neutronendetektor ist nicht im untersten Messbereich!“
+
+### Horizontale und vertikale Dichteverteilungen
+
+**Bestätigt:** Die beiden Diagramme sind keine momentanen vollständigen
+2D-Auswertungen, sondern eindimensionale Histogramme durch ein 99 Zellen
+breites Kreuz im Reaktormittelpunkt.
+
+Für die horizontale Verteilung werden nur Neutronen mit
+
+```text
+213 ≤ y ≤ 311
+```
+
+gezählt. Der Histogrammindex ist ihre x-Koordinate `0 … 524`.
+
+Für die vertikale Verteilung werden nur Neutronen mit
+
+```text
+213 ≤ x ≤ 311
+```
+
+gezählt. Der Histogrammindex ist ihre y-Koordinate `0 … 524`.
+
+Für jede Richtung existieren drei Float-Arrays mit 525 Einträgen:
+
+- schnelle Neutronen;
+- langsame Neutronen;
+- Spaltereignisse.
+
+Die Zählung erfolgt vor der Bewegung des Neutrons im jeweiligen
+Timerdurchlauf. Eine Messung läuft genau 100 Timerdurchläufe. Beim Start einer
+Messung werden die drei Arrays auf null gesetzt.
+
+Nach 100 Durchläufen wird ein gemeinsames Maximum über die schnellen und
+langsamen Neutronenhistogramme gesucht. Der Startwert für das Maximum ist 1,
+damit auch bei leeren Histogrammen keine Division durch null entsteht.
+Beide Kurven werden durch dasselbe Maximum dividiert:
+
+```text
+schnell_normiert[i] = schnell[i] / Maximum
+langsam_normiert[i] = langsam[i] / Maximum
+```
+
+Die Diagrammamplitude beträgt 100 Pixel. Langsame Neutronen werden grau,
+schnelle Neutronen rot gezeichnet. Benachbarte Arraywerte `i-1` und `i`
+werden durch Liniensegmente verbunden.
+
+Das Spaltungsarray wird zwar gefüllt und bei der nächsten Messung gelöscht,
+aber im vorhandenen Zeichencode nicht dargestellt. Dies ist sehr
+wahrscheinlich ein unvollständig gebliebenes Feature.
+
+Die horizontalen und vertikalen Routinen sind strukturell identisch; lediglich
+Auswahlband, Indexrichtung und Bildschirmorientierung unterscheiden sich.
 
 ## Zeitverhalten
 
@@ -390,7 +561,84 @@ Weitere eingebettete Dialoge:
 - horizontale Neutronendichteverteilung: Clientbereich `535 × 220`;
 - vertikale Neutronendichteverteilung: Clientbereich `204 × 75`.
 
-Die Anwendung enthält vollständige deutsche und englische Beschriftungen.
+Beim erstmaligen Öffnen überschreibt der Programmcode diese Designmaße passend
+zur Reaktorgrafik. Mit deren bestätigter Position `(16,16)` entstehen:
+
+| Diagramm | Fenstergröße zur Laufzeit | Zeichenrahmen |
+|---|---:|---:|
+| horizontal | `572 × 166` | `(16,16)`, `524 × 102` |
+| vertikal | `166 × 572` | `(16,16)`, `102 × 524` |
+
+Die Anwendung enthält vollständige deutsche und englische Beschriftungen. Die
+im DFM gespeicherten Startbeschriftungen sind englisch; der mit `Deutsch`
+beschriftete Knopf bietet den Wechsel zur deutschen Oberfläche an.
+
+### Sprachumschaltung
+
+**Bestätigt:** Die Sprache wird nicht über Betriebssystemressourcen gewählt.
+Der Sprachknopf prüft seine eigene aktuelle Beschriftung:
+
+- steht dort `Deutsch`, werden deutsche Texte gesetzt und der Knopf erhält
+  `English`;
+- andernfalls werden englische Texte gesetzt und der Knopf erhält `Deutsch`.
+
+Damit bezeichnet der Knopf jeweils die Sprache, zu der umgeschaltet werden
+kann, nicht die momentan sichtbare Sprache.
+
+Die statisch zugeordneten Texte sind:
+
+| Deutsch | Englisch |
+|---|---|
+| Steuerstäbe | Control Rods |
+| Neutronen- | Neutron |
+| Optionen | Options |
+| Leistung | Power |
+| Neutronenquelle | Neutron Source |
+| Sicherheitskreis | Safety Circuit |
+| Spaltzone | Reactor Core |
+| Mess- bereich | Measuring Range |
+| Detektor | Detector |
+| Neutronendichte- | Neutron Density |
+| verteilungen | Distributions |
+| Zeitlupe | Slow motion |
+| Einfahren | IN |
+| Ausfahren | OUT |
+| RESA | SCRAM |
+| Sicherheitsstab ausfahren | Safety rod up |
+| höher | higher |
+| tiefer | lower |
+| Reflektor | Reflector |
+| Moderatorablass | Drain Moderator |
+| Abbrand | Burnout |
+| Spaltungen gesamt: | Fissions, total: |
+
+Auch Diagrammtitel und sämtliche Schutzmeldungen werden beim Umschalten
+ersetzt. Die Materialgrafik selbst enthält keine sprachabhängigen Texte.
+
+### Beobachtete Implementierungsbesonderheiten
+
+Die folgenden Punkte sind im Maschinencode eindeutig erkennbar und sollten
+bei der Neuimplementierung bewusst entweder kompatibel nachgebildet oder als
+behobene Altfehler dokumentiert werden:
+
+- Die Beschriftung „Spaltungen gesamt“ zeigt den Spaltungszähler des aktuellen
+  Timerdurchlaufs. Der Zähler wird zu Beginn jedes Durchlaufs auf null gesetzt
+  und ist somit nicht kumulativ.
+- Ein Histogramm für Spaltorte wird gesammelt, aber niemals gezeichnet.
+- Beim normalen Einschalten wird die Quelle als `8 × 8`-Quadrat gezeichnet.
+  Nach dem Ausfahren der Sicherheitsstäbe wird nur ein inneres
+  `5 × 5`-Quadrat erneut gezeichnet.
+- Ein Zweig prüft, ob das Detektormaximum kleiner als 100 ist. Da der kleinste
+  erlaubte Messbereich bereits 100 beträgt, ist dieser Zweig im normalen
+  Programmzustand unerreichbar.
+- Abhängig von der Neutronenzahl wird intern eine Variable auf 1, 4 oder 20
+  gesetzt (`<1.000`, `<10.000`, sonst). Innerhalb des Timerereignisses wird
+  dieser berechnete Wert anschließend nicht verwendet.
+- Die Streurichtung im Material wird nicht normiert. Dadurch ändert sich die
+  Neutronengeschwindigkeit nach einer Streuung, obwohl neu erzeugte Neutronen
+  stets die Geschwindigkeit 5 erhalten.
+- Der Reflektor besitzt kein eigenes physikalisches Verhalten, sondern
+  verwendet exakt den Zelltyp und die Reaktionen des Moderators.
 
 ## Abgeleiteter Ablauf eines Timerdurchlaufs
 
@@ -399,19 +647,20 @@ Vereinfacht ergibt sich folgender Ablauf:
 ```text
 1. Darstellungsfläche vorbereiten.
 2. Änderungen an Reflektor und Rasterdarstellung übernehmen.
-3. Für jedes aktive Neutron:
+3. Für jedes zu Beginn vorhandene aktive Neutron:
    a. Dichteverteilungen aktualisieren.
    b. Gegebenenfalls an Material streuen.
    c. Position um den Geschwindigkeitsvektor verschieben.
    d. Neutron bei Verlassen des Rasters deaktivieren.
-   e. Materialwechselwirkung ausführen.
-4. Neutronenquelle und Untergrundquelle auswerten.
-5. Inaktive Neutroneneinträge aus der Liste entfernen.
-6. Leistungswert exponentiell glätten.
-7. Detektor, Leistung, Zähler und Warnungen aktualisieren.
-8. Gegebenenfalls automatische Abschaltung auslösen.
-9. In Intervallen von 100 Durchläufen Dichtekurven normieren/zeichnen.
-10. Gemessene Rechenzeit anzeigen.
+4. Detektorwert aus dem Bestand zu Beginn des Schritts aktualisieren.
+5. Detektorgrenzen prüfen und gegebenenfalls SCRAM auslösen.
+6. Für jedes noch aktive Neutron die Materialwechselwirkung ausführen.
+7. Neutronenquelle und Untergrundquelle auswerten.
+8. Inaktive Neutroneneinträge aus der Liste entfernen.
+9. Leistungswert exponentiell glätten und Leistungsgrenze prüfen.
+10. Leistung, Spaltungszähler und Warnungen aktualisieren.
+11. Nach 100 Messdurchläufen Dichtekurven normieren und zeichnen.
+12. Gemessene Rechenzeit anzeigen.
 ```
 
 ## Hinweise für die Neuimplementierung und Tests
@@ -449,20 +698,37 @@ Konstanten ableiten:
 11. Slow motion wechselt das Sollintervall von 20 auf 100 ms.
 12. Der Leistungsfilter erfüllt
     `P_neu = 0,9 × P_alt + 0,01 × K`.
+13. Der Detektorwert entspricht
+    `trunc(100 × Fortschritt / Messbereichsmaximum)`.
+14. Automatischer Hochbereichs-SCRAM verwendet `>90`, nicht `≥90`.
+15. Unterbereichs-SCRAM verwendet `<3` und ist bei Maximum 100 deaktiviert.
+16. Eine Dichtemessung sammelt genau 100 Schritte im Mittelband
+    `213 … 311`.
+17. Schnelle und langsame Histogramme werden auf ein gemeinsames Maximum
+    normiert.
 
 ## Offene Punkte
 
-Für die nächsten Analyseschritte bleiben insbesondere:
+Die statisch klärbaren Punkte aus der ersten Analysefassung sind inzwischen
+aufgearbeitet. Zurückgestellt bleiben nur Aufgaben, die eine Ausführung oder
+eine Referenzaufzeichnung benötigen:
 
-- dynamischer Abgleich der Zufallsvergleiche und der genauen
-  Gauge-Sättigung;
-- vollständige Rekonstruktion der horizontalen und vertikalen
-  Dichteverteilungsdiagramme;
-- exakte Zuordnung aller deutschen und englischen UI-Zustände;
-- Prüfung von Startzustand und Bedienablauf unter einer geeigneten
-  Windows-/Wine-Umgebung;
-- Golden-Master-Aufzeichnungen mit festem Zufallsseed für die spätere
-  Browserimplementierung.
+- visueller Pixelvergleich der tatsächlich von GDI/VCL gerenderten Oberfläche
+  bei unterschiedlichen Windows-Themes und Schriftinstallationen;
+- Prüfung des subjektiven Bediengefühls und der real erreichten
+  Timerfrequenz unter Last;
+- Beobachtung von Zufallsverteilungen über lange Läufe als Gegenprobe zur
+  statisch rekonstruierten Vergleichsrichtung;
+- Golden-Master-Aufzeichnungen von konkreten Läufen. Da die EXE ihren
+  Zufallszahlengenerator intern initialisiert und keine Seed-Schnittstelle
+  anbietet, sind identische Originalwiederholungen ohne zusätzliche
+  Instrumentierung nicht garantiert;
+- Verhalten bei Betriebssystemfehlern, Ressourcenmangel oder mehr als 100.000
+  Neutronen.
+
+Diese Punkte sind für die Struktur des Simulationskerns nicht blockierend und
+können nach der ersten browserbasierten Implementierung als
+Kompatibilitätsprüfung folgen.
 
 ## Analysewerkzeug
 
@@ -471,3 +737,55 @@ extrahierten binären Delphi-Formularressourcen. Dadurch können Positionen,
 Größen, Beschriftungen, Standardwerte und Ereignisnamen reproduzierbar geprüft
 werden.
 
+## Statische Fundstellen
+
+Die wichtigsten rekonstruierten Ereignisroutinen liegen an folgenden virtuellen
+Adressen. Diese Liste erleichtert spätere Gegenprüfungen mit einem anderen
+Disassembler:
+
+| Routine | Adresse |
+|---|---:|
+| Initialisierung der Raster und Neutronen | `0x45A8DC` |
+| `FormCreate` | `0x45AB78` |
+| `Timer1Timer` | `0x45AD04` |
+| Messbereich höher | `0x45C3B8` |
+| Messbereich tiefer | `0x45C484` |
+| Neutronenquelle ein | `0x45C558` |
+| Neutronenquelle aus | `0x45C5D8` |
+| Sicherheitsstäbe ausfahren | `0x45C6E8` |
+| manueller SCRAM | `0x45C85C` |
+| Steuerstabbewegung abwärts | `0x45C948` |
+| Steuerstabbewegung aufwärts | `0x45CB08` |
+| Sprachumschaltung | `0x45CD04` |
+| Moderatorablass | `0x45D89C` |
+| horizontales Diagramm | `0x45D96C` |
+| vertikales Diagramm | `0x45DC3C` |
+
+Relevante Routinen der eingebetteten Gauge-Komponente:
+
+| Funktion | Adresse |
+|---|---:|
+| Prozentberechnung | `0x45863C` / `0x458714` |
+| Minimum setzen | `0x458F1C` |
+| Maximum setzen | `0x458FCC` |
+| Fortschritt begrenzen und setzen | `0x45907C` |
+
+Zentrale Konstanten im Code:
+
+| Adresse | Wert | Verwendung |
+|---|---:|---|
+| `0x45AB6C` | `524.0` | zufällige Startkoordinate |
+| `0x45AB70` | `0.5` | Zentrierung der Zufallsrichtung |
+| `0x45AB74` | `5.0` | Anfangsgeschwindigkeit |
+| `0x45C348` | `0.05` | Moderationswahrscheinlichkeit |
+| `0x45C354` | `0.003` | Absorption im Moderator |
+| `0x45C360` | `0.02` | maximale Spaltwahrscheinlichkeit |
+| `0x45C36C` | `10.0` | maximaler Abbrandzähler |
+| `0x45C37C` | `0.005` | Abbrand-Absorptionsfaktor |
+| `0x45C388` | `0.2` | schnelle Absorption im Stab |
+| `0x45C394` | `0.01` | Untergrundquellenrate |
+| `0x45C3A0` | `524.0` | Untergrundquellenbereich |
+| `0x45C3A4` | `0.9` | Leistungsglättung |
+| `0x45C3B0` | `100.0` | normale Leistungsskala |
+| `0x45C3B4` | `120.0` | Leistungs-SCRAM-Grenze |
+| `0x45CAEC` | `397.0` | Steuerstabweg |
