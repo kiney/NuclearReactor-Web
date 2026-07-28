@@ -1,0 +1,8 @@
+.status-dot,
+.reactor-canvas canvas:nth-of-type(2),
+.instrument-grid,
+.diagnostics dd,
+.histogram-panel .section-heading span,
+.alarm-step {
+  visibility: hidden !important;
+}
