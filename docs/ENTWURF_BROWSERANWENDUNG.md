@@ -2,9 +2,15 @@
 
 Stand: 28. Juli 2026
 
-Status: Arbeitsentwurf 0.1 zur iterativen Schärfung
+Status: Arbeitsentwurf 0.2 zur iterativen Schärfung
 
 Grundlage: [`ANALYSE_NUCLEARREACTOR_1_2.md`](./ANALYSE_NUCLEARREACTOR_1_2.md)
+
+Änderungen in 0.2:
+
+- tatsächlichen Abhängigkeitsumfang des Web-Stacks erklärt und begrenzt;
+- kompatibles Originalmodell als dauerhaft versioniertes Modell definiert;
+- kleine Modellgrenze für spätere, physikalisch verbesserte Modelle ergänzt.
 
 ## 1. Zweck dieses Dokuments
 
@@ -70,11 +76,18 @@ werden.
 
 ## 3. Leitprinzipien
 
-### 3.1 Fachliche Nähe vor physikalischer Verbesserung
+### 3.1 In Version 1 gilt fachliche Nähe vor physikalischer Verbesserung
 
 Die bekannten Wahrscheinlichkeiten, Rastergrenzen, Schrittfolgen und
 Schutzschwellen werden nicht „realistischer“ gemacht. Das Ziel ist eine
 Reimplementierung des vorhandenen Modells, kein neues Kernphysikmodell.
+Diese Festlegung gilt für das in Version 1 ausgelieferte **Originalmodell**,
+nicht als dauerhafte Beschränkung der gesamten Anwendung.
+
+Die Originalnähe ist dabei kein Selbstzweck: Für dieses Modell ist bereits
+bekannt, dass es sich didaktisch sinnvoll einsetzen und von durchschnittlichen
+Nutzern bedienen lässt. Version 1 schafft deshalb zuerst eine verlässlich
+getestete Referenz, bevor fachlich anspruchsvollere Modelle hinzukommen.
 
 ### 3.2 Simulationskern und Oberfläche sind strikt getrennt
 
@@ -89,8 +102,10 @@ vergangener Sekunde ausgewertet.
 
 ### 3.4 Reproduzierbarkeit ist ein Produktmerkmal
 
-Jeder Lauf besitzt einen 32-Bit-Seed. Reset mit demselben Seed und derselben
-Befehlsfolge muss denselben fachlichen Zustand erzeugen.
+Jeder Lauf besitzt Modellkennung, Modellversion, Konfiguration und Seed. Das
+Originalmodell verwendet einen 32-Bit-Seed. Reset mit denselben
+Reproduzierbarkeitsdaten und derselben Befehlsfolge muss denselben fachlichen
+Zustand erzeugen.
 
 ### 3.5 Moderne Darstellung darf die Physik nicht verändern
 
@@ -105,6 +120,22 @@ Die Simulation läuft in einem Web Worker. Selbst bei vielen Neutronen müssen
 SCRAM, Pause und andere Eingaben auf der Oberfläche direkt reagieren. Wird
 die Rechenlast zu hoch, darf die fachliche Simulationszeit wie beim Original
 langsamer laufen; die UI darf nicht blockieren.
+
+### 3.7 Physikmodelle sind versioniert und werden nicht überschrieben
+
+Das kompatible Originalmodell erhält die stabile Modellkennung
+`original-1.2`. Nach seiner Abnahme werden seine Regeln nur noch geändert, um
+einen nachgewiesenen Implementierungsfehler gegenüber dieser Spezifikation zu
+beheben.
+
+Spätere physikalische Verbesserungen entstehen als neues Modell mit eigener
+Kennung, Version, Konfiguration und Testbasis. Sie dürfen vom Vorbild
+abweichen, ohne die didaktisch erprobte Originalsimulation oder deren
+reproduzierbare Läufe zu verändern.
+
+Die erste Version enthält noch keine Modellauswahl und kein allgemeines
+Plugin-System. Sie implementiert aber bereits eine kleine, klar definierte
+Modellgrenze zwischen Laufzeit/Worker, Simulationsmodell und Darstellung.
 
 ## 4. Umfang der ersten vollständigen Version
 
@@ -122,6 +153,7 @@ langsamer laufen; die UI darf nicht blockieren.
 | Laufsteuerung | Start/Fortsetzen, Pause, Einzelschritt und Reset |
 | Sprache | vollständige deutsche und englische Oberfläche |
 | Darstellung | hochauflösendes, responsives Canvas mit Legende und klaren Statusanzeigen |
+| Modellidentität | sichtbare Kennung `original-1.2` und versionierte Reproduzierbarkeitsangaben |
 | Qualität | automatisierte Unit-, Integrations-, Browser- und Barrierefreiheitstests |
 | Auslieferung | statische Dateien ohne Serverlogik, Konten, Tracking oder Netzwerkpflicht |
 
@@ -156,6 +188,26 @@ oder nicht in dieser Form besitzt:
 - pixelgenaue Nachbildung der alten Delphi/VCL-Oberfläche;
 - zwingende PWA-/Offline-Installation; ein statisch ausgelieferter Build ist
   jedoch nach dem ersten Laden ohne Serverberechnungen funktionsfähig.
+
+### 4.4 Perspektive für spätere Physikmodelle
+
+Die Architektur soll später beispielsweise ermöglichen:
+
+- mehr als zwei Neutronen-Energiegruppen oder kontinuierliche Energie;
+- energie- und materialabhängige Wirkungsquerschnitte und freie Weglängen;
+- physikalisch begründete Zeit- und Längenskalen;
+- realistischere Reflektor- und Randbedingungen;
+- verzögerte Neutronen und Vorläufergruppen;
+- Isotopenzusammensetzung und detaillierteren Abbrand;
+- Temperatur-, Moderator- und Leistungsrückkopplungen;
+- Kopplung an ein vereinfachtes thermohydraulisches Modell;
+- andere Geometrien, Rastergrößen und Messgrößen.
+
+Diese Punkte werden in Version 1 weder fachlich implementiert noch durch
+abstrakte Platzhalter vorgetäuscht. Die gemeinsame Architektur darf aber
+außerhalb des Moduls `original-1.2` keine Annahmen fest einbauen, die solche
+Modelle unnötig verhindern – etwa genau 525 Rasterzellen, exakt zwei
+Partikelarten oder die Materialcodes 0 … 5.
 
 ## 5. Kompatibilitätspolitik
 
@@ -211,6 +263,30 @@ entschieden, ob die Kompatibilität den Mehraufwand rechtfertigt.
   Abbrand-Option erhalten. Solange die Option aus ist, steigen sie nicht und
   Brennstoff wird in seiner Grundfarbe dargestellt. Beim Wiedereinschalten
   werden die vorhandenen Werte wieder wirksam und sichtbar.
+
+### 5.4 Dauerhafter Status des Originalmodells
+
+Alle Regeln der Abschnitte 5 und 6 gehören ausschließlich zum Modell
+`original-1.2`. Seine Modellversion wird Bestandteil jedes
+Reproduzierbarkeitshinweises.
+
+Nach Freigabe der ersten Version gilt:
+
+- Die Kompatibilitätstests des Originalmodells bleiben dauerhaft in der
+  Testsuite.
+- Eine neue physikalische Annahme wird nicht durch Änderung alter
+  Wahrscheinlichkeiten oder Schrittfolgen eingebaut.
+- Physikalische Weiterentwicklung beginnt in einem neuen Modellmodul.
+- Die UI muss jederzeit eindeutig anzeigen, welches Modell aktiv ist.
+- Ein Seed ist nur zusammen mit Modellkennung, Modellversion und
+  Modellkonfiguration vollständig reproduzierbar.
+
+`modelVersion` versioniert die konkrete Implementierung eines Modells. Eine
+Fehlerkorrektur, die deterministische Resultate verändert, erhöht diese
+Version und wird dokumentiert. Eine neue physikalische Grundannahme erhält
+dagegen eine neue Modellkennung statt nur einer höheren Version von
+`original-1.2`. Die separat geführte `snapshotSchemaVersion` beschreibt nur
+das technische Austauschformat.
 
 ## 6. Fachliches Modell
 
@@ -760,6 +836,13 @@ schreiben niemals direkt in den Simulationszustand.
 | `change-range` | higher/lower | benachbarten Messbereich wählen |
 | `reset-histograms` | – | nur Diagrammmessungen löschen |
 
+Im Worker-Protokoll gehören `start`, `pause`, `step-once`, `reset` und
+`set-speed` zur gemeinsamen Laufzeit. Die übrigen Einträge sind Befehle des
+Modells `original-1.2`. Diese Trennung ändert nicht ihre Bedienwirkung, hält
+aber künftige Modelle frei von Originalbefehlen. `set-speed` wählt einen vom
+aktiven Modell deklarierten Laufmodus; für das Original sind dies
+normal/Zeitlupe.
+
 Jeder Befehl erhält eine vom UI erzeugte laufende `commandId`. Der Worker
 antwortet mit:
 
@@ -831,6 +914,7 @@ Container werden und behält ein Seitenverhältnis von 1:1.
 Enthält:
 
 - Produktname;
+- aktive Modellbezeichnung; in Version 1 „Originalmodell 1.2“;
 - Laufstatus mit Text und Symbol;
 - Start/Pause als umschaltende Primäraktion;
 - Einzelschritt nur im pausierten Zustand;
@@ -1068,7 +1152,8 @@ Ein kompakter Info-Bereich nennt:
 - die Bedeutung von schnellen/langsamen Neutronen, Materialien, Abbrand und
   Schutzgrenzen in kurzer Form;
 - den Seed und die Version der Webanwendung für reproduzierbare
-  Fehlermeldungen.
+  Fehlermeldungen;
+- Modellkennung, Modellversion und relevante Modellkonfiguration.
 
 Diese Inhalte werden lokal mit ausgeliefert. Das Öffnen der Hilfe erfordert
 keinen Netzwerkzugriff.
@@ -1077,72 +1162,132 @@ keinen Netzwerkzugriff.
 
 ### 9.1 Vorgesehener Stack
 
-| Aufgabe | Technik |
-|---|---|
-| Sprache | TypeScript im strikten Modus |
-| Build/Entwicklung | Vite |
-| Oberfläche | React mit funktionalen Komponenten |
-| Simulation | frameworkfreie TypeScript-Module |
-| Nebenläufigkeit | standardmäßiger Web Worker |
-| Reaktor/Diagramme | Canvas 2D, keine schwere Chart-Bibliothek |
-| Styling | normales CSS mit Custom Properties, Grid und Container Queries |
-| Unit/Integration | Vitest |
-| Browser-E2E | Playwright |
-| Barrierefreiheit | axe-core im Playwright-Test |
+Der Stack besteht aus drei Projektentscheidungen und mehreren eingebauten
+Browserfunktionen. Die lange Aufzählung bedeutet nicht, dass für jeden Punkt
+ein zusätzliches Framework eingesetzt wird.
 
-Zusätzliche globale State- oder UI-Frameworks werden anfangs nicht benötigt.
-Abhängigkeiten sind klein zu halten und bei Projektinitialisierung exakt zu
-pinnden.
+#### Eigentliche Projekttechniken
+
+| Aufgabe | Technik | Begründung |
+|---|---|---|
+| Sprache | TypeScript im strikten Modus | klare Modellverträge und sichere Typed-Array-/Nachrichtenstrukturen |
+| Build/Entwicklung | Vite | kleiner, üblicher Entwicklungsserver und Produktionsbuild |
+| Oberfläche | React mit funktionalen Komponenten | überschaubare Synchronisation vieler Anzeigen und Zustände |
+
+Die Simulationsmodelle selbst bleiben frameworkfreie TypeScript-Module.
+
+#### Native Browser-APIs, keine zusätzlichen Frameworks
+
+- Web Worker für Nebenläufigkeit;
+- Canvas 2D für Reaktor und Diagramme;
+- normales CSS mit Custom Properties, Grid und Container Queries;
+- DOM-/ARIA-Standards für Bedienung und Barrierefreiheit;
+- `localStorage` für wenige UI-Präferenzen;
+- `crypto.getRandomValues` ausschließlich zur Erzeugung eines neuen Seeds.
+
+#### Reine Entwicklungswerkzeuge
+
+| Aufgabe | Werkzeug |
+|---|---|
+| Unit- und Integrationsprüfungen | Vitest, passend zum Vite-/TypeScript-Setup |
+| echte Browsertests | Playwright |
+| automatischer Accessibility-Check | axe-core innerhalb der Playwright-Tests |
+
+Vitest, Playwright und axe-core werden nicht an Nutzer ausgeliefert.
+Das Lockfile wird versioniert. Eine weitere direkte Abhängigkeit wird nur
+aufgenommen, wenn ihr Nutzen gegenüber einer vorhandenen Browser-API im
+Entwurf dokumentiert ist.
+
+#### Verbindliches Abhängigkeitsbudget
+
+Version 1 verwendet ausdrücklich:
+
+- keinen Router;
+- kein Redux oder anderes globales State-Framework;
+- keine Komponentenbibliothek;
+- kein CSS-Framework;
+- keine Chart-Bibliothek;
+- kein i18n-Framework;
+- kein allgemeines Plugin-Framework;
+- keine Python-Laufzeit im Browser.
+
+Im Produktionsquellcode sind React und React DOM damit die einzigen
+grundlegenden Laufzeitbibliotheken. Vite bündelt sie in statische Dateien; der
+Browser lädt keine Pakete zur Laufzeit nach.
+
+Eine Python-Laufzeit wie Pyodide würde die vertraute Sprache für Teile des
+Teams bieten, aber Downloadgröße, Startzeit, Worker-Integration und
+Datentransfer deutlich komplexer machen. Die Oberfläche müsste trotzdem in
+Webtechniken gebaut werden. Für den kleinen numerischen Originalkern ist
+frameworkfreies TypeScript daher die schlankere Lösung. Fachliche Formeln
+werden in kleinen Modulen mit Python-ähnlich geradliniger Struktur und starken
+Tests gehalten.
+
+Eine Oberfläche mit rein imperativen DOM-Aufrufen wäre technisch möglich und
+würde zwei direkte Abhängigkeiten entfernen. Sie müsste für abhängige
+Instrumente, Worker-Snapshots, Dialogzustände und Sprachwechsel jedoch eigene
+Update- und Komponentenmechanismen bauen. Das wäre weniger standardisiert und
+voraussichtlich nicht einfacher zu warten. React bleibt deshalb die empfohlene
+kleinste sinnvolle Abstraktion.
+
+Falls sich bereits beim ersten UI-Prototyp zeigt, dass React keinen erkennbaren
+Nutzen bringt, kann vor Beginn der eigentlichen GUI-Phase noch auf
+frameworkfreies TypeScript gewechselt werden. Simulationsmodell,
+Worker-Protokoll, Renderer und Tests bleiben davon unberührt.
 
 ### 9.2 Systemübersicht
 
 ```text
-React UI
-  │  Benutzerbefehle
-  ▼
-UI Store / Worker Client ───────────────┐
-  │ versionierte Nachrichten           │ Snapshots/Ereignisse
-  ▼                                    │
-Simulation Web Worker ─────────────────┘
-  │
-  ├── Scheduler (20/100 ms, kein Catch-up)
-  ├── reiner Simulationskern
-  │     ├── Geometrie und Material
-  │     ├── Neutronenpool
-  │     ├── LCG
-  │     ├── Reaktionen
-  │     ├── Instrumente/Schutzlogik
-  │     └── Histogramme
-  └── Snapshot-Aufbereitung
-
-React UI
-  ├── Reactor Renderer
-  ├── Histogram Renderer
-  ├── Instrumente
-  └── Bedien- und Alarmkomponenten
+React App-Shell
+  ├── gemeinsame Renderer und Instrumentkomponenten
+  └── Bedienpanel/Adapter des aktiven Modells
+          │ Benutzerbefehle
+          ▼
+Worker Client / React Subscription ────────────┐
+          │ versionierte Nachrichten           │ Snapshots/Ereignisse
+          ▼                                    │
+Simulation Web Worker / Model Host ────────────┘
+  ├── generischer Scheduler, Befehlsqueue und Snapshot-Transport
+  └── genau eine aktive Modellinstanz
+       ├── Version 1: Original12Model
+       │    ├── Geometrie und Material
+       │    ├── Neutronenpool und Delphi-LCG
+       │    ├── Reaktionen
+       │    ├── Instrumente/Schutzlogik
+       │    └── Histogramme
+       └── später: ImprovedPhysicsModel, ThermalModel, …
 ```
+
+In Version 1 existiert nur `Original12Model`. Der zweite Modellzweig zeigt
+eine Architekturgrenze, keine schon zu implementierende Funktion.
 
 ### 9.3 Schichtentrennung
 
-#### Domain/Simulation
+#### Simulationsmodell
 
 Verantwortlich für alle fachlichen Zahlen und Zustandsübergänge. Keine
 Browser-Globals außer Typed Arrays; dadurch direkt in Unit-Tests ausführbar.
+Das Modell kennt Worker, React und die konkrete Bildschirmdarstellung nicht.
 
-#### Worker Runtime
+#### Model Host und Worker Runtime
 
 Verantwortlich für Timer, Nachrichten, Publikationsraten und Fehlergrenze.
-Keine fachliche Logik duplizieren.
+Der Model Host verwaltet genau eine Instanz über den Modellvertrag. Er kennt
+keine Regeln zu Moderator, Stäben oder Reaktionswahrscheinlichkeiten und
+dupliziert keine fachliche Logik.
 
 #### UI Application
 
 Verantwortlich für Befehle, Layout, Sprache, Bestätigungen und Anzeige des
-letzten konsistenten Snapshots.
+letzten konsistenten Snapshots. Eine kleine modellspezifische UI-Schicht
+definiert die konkreten Bedienelemente des Originalmodells.
 
 #### Rendering
 
 Verantwortlich für Material-, Partikel- und Diagrammpixel. Erhält nur Daten,
-ändert nie den Domainzustand.
+ändert nie den Domainzustand. Gemeinsame Renderer verwenden vom Modell
+gelieferte Zell- und Partikelbeschreibungen statt fest eingebauter
+Materialcodes.
 
 ### 9.4 Empfohlene Projektstruktur
 
@@ -1151,39 +1296,53 @@ src/
   app/
     App
     workerClient
-    uiStore
+    useSimulationSnapshot
   simulation/
-    constants
-    types
-    rng
-    geometry
-    neutronPool
-    interactions
-    detector
-    protection
-    histograms
-    engine
-  worker/
+    contract/
+      model
+      observations
+      renderData
+    models/
+      original12/
+        metadata
+        constants
+        types
+        rng
+        geometry
+        neutronPool
+        interactions
+        detector
+        protection
+        histograms
+        engine
+        model
+        tests/
+    modelFactory
+  runtime/
     protocol
     simulationWorker
+    modelHost
     scheduler
     snapshots
   rendering/
-    palette
     materialImage
     reactorRenderer
     histogramRenderer
   components/
-    AppHeader
-    AlarmBanner
-    ReactorView
-    DetectorGauge
-    PowerGauge
-    SafetyControls
-    ControlRodControls
-    ReactorOptions
-    HistogramPanel
-    DiagnosticsBar
+    common/
+      AppHeader
+      AlarmBanner
+      ReactorView
+      ScalarGauge
+      HistogramPanel
+      DiagnosticsBar
+    original12/
+      Original12Dashboard
+      DetectorGauge
+      PowerGauge
+      SafetyControls
+      ControlRodControls
+      ReactorOptions
   i18n/
     de
     en
@@ -1201,9 +1360,79 @@ tests/
 Dateiendungen und kleinere Gruppierungen darf die Implementierung an die
 Werkzeuge anpassen. Die fachlichen Modulgrenzen sollen erhalten bleiben.
 
-### 9.5 Domainzustand
+`modelFactory` ist in Version 1 nur eine kleine explizite Zuordnung der
+Kennung `original-1.2` zur Modellklasse. Es gibt weder dynamische Imports aus
+fremden Quellen noch ein Pluginmanifest. Ein weiteres Modell wird später
+durch einen neuen Ordner und einen expliziten Factory-Eintrag ergänzt.
 
-Der Worker ist alleiniger Eigentümer des veränderlichen Domainzustands:
+### 9.5 Minimaler Modellvertrag
+
+Die Modellgrenze soll klein bleiben und keine hypothetische Universalphysik
+modellieren. Eine Modellinstanz muss fachlich nur Folgendes leisten:
+
+| Element | Vertrag |
+|---|---|
+| `metadata` | stabile Modellkennung, Modellversion, Snapshot-Schemaversion, Name, Raster-/Darstellungsbeschreibung, Laufmodi und Fähigkeiten liefern |
+| `initialize(config, seed)` | aus Modellkonfiguration und Seed einen vollständigen Zustand erzeugen |
+| `applyCommand(command)` | einen sprachneutralen Modellbefehl annehmen oder mit stabilem Grund ablehnen |
+| `step()` | genau einen fachlich atomaren Modellschritt ausführen |
+| `createSnapshot(kind)` | konsistente Telemetrie-, Render-, Diagramm- oder vollständige Beobachtung liefern |
+| `reset(config, seed)` | Zustand mit angegebener Konfiguration und Seed vollständig neu erzeugen |
+| `dispose()` | gegebenenfalls eigene Ressourcen freigeben; im Original ein No-op |
+
+Der Vertrag schreibt einem Modell ausdrücklich nicht vor:
+
+- welche Physik oder Zeiteinheit ein Schritt besitzt;
+- welchen Zufallszahlengenerator es verwendet;
+- ob es Partikel, Felder oder beides simuliert;
+- welche Materialien, Messwerte oder Bedienelemente existieren;
+- ob sein Kern später in TypeScript oder über einen lokalen
+  WebAssembly-Adapter implementiert ist.
+
+Die Version-1-Implementierung bleibt TypeScript. WebAssembly ist lediglich
+eine mögliche spätere Implementierungsform für rechenintensivere Modelle und
+keine aktuelle Abhängigkeit.
+
+#### Gemeinsame Beobachtungsdaten
+
+Damit vorhandene Renderer wiederverwendbar sind, projiziert jedes passende
+Modell seinen internen Zustand auf eine kleine Darstellungsstruktur:
+
+- Modellkennung, Modellversion, Schritt und optional simulierte Zeit;
+- zweidimensionales Raster mit variabler Breite/Höhe und
+  modellbeschriebenen Zelltyp-IDs;
+- null oder mehr Partikel- beziehungsweise Punktkategorien mit ID, Farbe und
+  Positionen;
+- benannte skalare Messwerte mit Einheit, Wertebereich und optionalen
+  Warnmarken;
+- null oder mehr benannte Kurven/Histogramme;
+- sprachneutrale Ereignisse und Alarmstufen.
+
+Das ist ein Darstellungsformat, kein gemeinsames Physik-Domainmodell.
+`Original12State` bleibt stark typisiert und wird nicht in eine lose
+Key-Value-Struktur umgebaut.
+
+#### Modellspezifische Bedienung
+
+Start, Pause, Einzelschritt, Reset, Seedverwaltung und die Wahl eines vom
+Modell angebotenen Laufmodus gehören zur gemeinsamen App-Shell. Fachbefehle
+wie Steuerstäbe, Moderatorablass oder ein späterer Kühlmittelregler gehören
+zum jeweiligen Modell.
+
+Version 1 besitzt deshalb ein kleines `Original12Dashboard`, das
+`Original12Snapshot` versteht und Befehle dieses Modells sendet. Gemeinsame
+Canvas-, Diagramm- und Gauge-Komponenten bleiben modellneutral. Ein späteres
+Modell kann dieselben Anzeigeelemente nutzen, bekommt aber bei Bedarf ein
+eigenes Bedienpanel.
+
+Diese bewusste Kombination aus gemeinsamem Renderformat und stark typisierten
+Modelladaptern verhindert sowohl harte Kopplung an das Original als auch ein
+überabstraktes dynamisches Formularsystem.
+
+### 9.6 Domainzustand des Originalmodells
+
+Der Worker ist alleiniger Eigentümer der aktiven Modellinstanz.
+`Original12Model` besitzt den folgenden veränderlichen Domainzustand:
 
 | Gruppe | Felder |
 |---|---|
@@ -1222,14 +1451,26 @@ React hält nur eine unveränderliche Sichtkopie publizierter Werte sowie
 kurzlebige UI-Zustände wie geöffnetes Bestätigungsfenster oder ausgewählte
 Sprache.
 
-### 9.6 Worker-Protokoll
+### 9.7 Worker-Protokoll
 
-Alle Nachrichten tragen eine Protokollversion.
+Alle Nachrichten tragen:
+
+- Protokollversion;
+- Modellkennung;
+- Modellversion;
+- Snapshot-Schemaversion;
+- soweit zutreffend die Modellschrittzahl.
+
+Ein Lauf kann dadurch nicht versehentlich Snapshots verschiedener Modelle oder
+Versionen mischen.
 
 #### UI an Worker
 
-- Initialisierung mit Seed und Startoption;
-- die in Abschnitt 7 definierten Befehle;
+- Initialisierung mit Modellkennung, Modellkonfiguration, Seed und
+  Startoption; Version 1 akzeptiert nur `original-1.2`;
+- gemeinsame Laufbefehle Start, Pause, Einzelschritt und Reset;
+- sprachneutrale Modellbefehle; für `original-1.2` die fachlichen Befehle aus
+  Abschnitt 7;
 - Anforderung eines vollständigen Snapshots nach Wiederverbindung;
 - Einstellung der maximalen reinen Darstellungs-Publikationsrate.
 
@@ -1237,28 +1478,37 @@ Alle Nachrichten tragen eine Protokollversion.
 
 | Nachricht | Inhalt | Rate |
 |---|---|---|
-| `ready` | Initialzustand und Fähigkeiten | einmal |
+| `ready` | Modellidentität, Initialzustand, Metadaten und Fähigkeiten | einmal |
 | `command-result` | commandId, accepted/rejected, Grund | sofort |
-| `telemetry` | konsistenter Instrumenten-/Stabzustand | höchstens 10–20 Hz und sofort bei Alarm |
-| `particles` | x/y und schnell/langsam für sichtbaren Snapshot | Ziel 25–30 Hz, unter Last reduzierbar |
-| `material` | Materialraster und Revision | nur bei Geometrieänderung |
-| `burnout` | Abbrandraster und Revision | nur wenn geändert, gebündelt höchstens 10 Hz |
-| `histograms` | abgeschlossene normalisierte Fenster | alle 100 Schritte bzw. Reset |
+| `model-state` | stark typisierter modellspezifischer Zustand; im Original Instrumente, Stäbe und Optionen | höchstens 10–20 Hz und sofort bei Alarm |
+| `grid-layer` | benannte Rasterebene, Zelltypmetadaten und Revision; im Original Material/Abbrand | nur bei Änderung |
+| `point-layer` | Positionen und Kategorie-IDs; im Original schnelle/langsame Neutronen | Ziel 25–30 Hz, unter Last reduzierbar |
+| `series` | benannte Kurven/Histogramme | bei fachlicher Aktualisierung |
+| `event` | Alarm oder relevantes Modellereignis | sofort |
 | `fatal-error` | stabiler Fehlercode und Diagnose | bei nicht behebbarer Worker-Ausnahme |
 
 Große Typed Arrays werden als Transferables übertragen. Der Worker darf nicht
 den eigentlichen Simulationsspeicher transferieren und dadurch verlieren,
 sondern verwendet wiederverwendbare Snapshot-Puffer.
 
-Jede Telemetrie trägt die Schrittzahl. Die UI kombiniert keine Teilnachrichten
-verschiedener Materialrevisionen, ohne dies zu erkennen.
+Die konkreten TypeScript-Nachrichtentypen werden als diskriminierte Union
+definiert. Die Variante `model-state` ist zusätzlich über die Modellkennung
+typisiert und wird nicht als beliebiges JSON-Objekt behandelt.
 
-### 9.7 Scheduler
+Die UI kombiniert keine Teilnachrichten verschiedener Schritte,
+Modellversionen oder Rasterrevisionen, ohne dies zu erkennen.
+
+### 9.8 Scheduler
 
 Der Worker-Scheduler führt pro Timerereignis genau einen Simulationsschritt
-aus. Er holt keine ausgefallenen Schritte in einer Schleife nach.
+des aktiven Modells aus. Er holt keine ausgefallenen Schritte in einer
+Schleife nach.
 
-Begründung:
+Für `original-1.2` bietet das Modell die Laufmodi normal mit 20 ms und
+Zeitlupe mit 100 ms an. Die Laufzeit liest diese Angaben aus den
+Modellmetadaten; sie baut die beiden Zahlen nicht als allgemeine Annahme ein.
+
+Begründung für das Originalmodell:
 
 - entspricht dem Verhalten des Originals bei Überlastung;
 - vermeidet Eingabestau und lange Worker-Blockaden;
@@ -1272,7 +1522,13 @@ Diagnostik erscheinen, beeinflussen aber nicht die Physik.
 Im pausierten Zustand läuft kein Scheduler. `step-once` ruft dieselbe
 Schrittfunktion genau einmal auf.
 
-### 9.8 Befehle und Schrittgrenzen
+Ein späteres Modell darf andere feste Schrittperioden und eine eigene
+simulierte Zeit besitzen. Die gemeinsame Laufzeit übergibt nicht ungeprüft die
+schwankende reale Browserzeit als physikalische Schrittweite. Eine solche
+Semantik müsste ein neues Modell ausdrücklich in seinem versionierten Vertrag
+definieren.
+
+### 9.9 Befehle und Schrittgrenzen
 
 Eingehende Fachbefehle werden in einer FIFO-Warteschlange gesammelt und am
 Anfang des nächsten Schritts ausgeführt. Damit hängt das Ergebnis nicht davon
@@ -1288,24 +1544,34 @@ Ausnahmen:
   Befehls-Dispatcher angewendet und anschließend als Snapshot veröffentlicht,
   ohne einen Simulationsschritt oder RNG-Aufruf auszulösen.
 
-### 9.9 Rendering-Pipeline
+### 9.10 Rendering-Pipeline
 
 #### Material
 
-Aus Material- und Abbrandraster wird ein 525 × 525 großes logisches
-Offscreen-Bild erzeugt. Es wird nur bei einer Revision neu aufgebaut.
+Aus einer benannten Rasterebene wird ein Offscreen-Bild in deren logischer
+Breite und Höhe erzeugt. Zelltypfarben und gegebenenfalls zusätzliche
+Farbwerte liefert die Modellsicht; der gemeinsame Renderer kennt keine Codes
+wie „1 bedeutet Moderator“.
+
+Für `original-1.2` kombiniert der Modelladapter Material und Abbrand zu einem
+525 × 525 großen logischen Bild. Es wird nur bei einer passenden Revision neu
+aufgebaut.
 
 #### Partikel
 
 Ein transparentes logisches Partikelbild wird für jeden Render-Snapshot
-geleert und in stabiler Poolreihenfolge befüllt:
+geleert und aus den gelieferten Punktkategorien befüllt. ID, Farbe,
+Zeichenreihenfolge und Koordinatensystem stammen aus den Modellmetadaten.
 
-- schnell rot;
-- langsam nahezu schwarz;
+Im Originalmodell gilt:
+
+- schnelle Neutronen rot;
+- langsame Neutronen nahezu schwarz;
+- stabile Poolreihenfolge;
 - Position durch Abrunden von x/y.
 
-Material- und Partikelbild werden anschließend auf das hochauflösende sichtbare
-Canvas skaliert. Kanten der Materialzellen bleiben scharf.
+Raster- und Partikelbild werden anschließend auf das hochauflösende sichtbare
+Canvas skaliert. Kanten der Rasterzellen bleiben scharf.
 
 #### Overlays
 
@@ -1315,14 +1581,20 @@ werden nicht in das Materialbild eingebrannt.
 
 #### Diagramme
 
-Diagramm-Canvas verwendet CSS-Größe × `devicePixelRatio`, rendert alle 525
-Bins und beschriftet Achsen im DOM. Dadurch bleiben Text und
+Diagramm-Canvas verwendet CSS-Größe × `devicePixelRatio` und rendert die vom
+Modell gelieferten Serien vollständig. Im Original sind dies jeweils 525
+Bins. Achsen werden im DOM beschriftet. Dadurch bleiben Text und
 Screenreaderstruktur unabhängig von Canvas-Pixeln.
 
-### 9.10 UI-State und Aktualisierung
+### 9.11 UI-State und Aktualisierung
 
-Ein kleiner externer Store oder React-kompatibler Subscription-Store hält den
-letzten Snapshot. Häufige Partikelbilder sollen nicht die gesamte
+`workerClient` hält den letzten unveränderlichen Modellzustand und bietet nur
+`subscribe` und `getSnapshot` an. Ein kleiner Hook bindet ihn über Reacts
+eingebautes `useSyncExternalStore` an Komponenten. Es wird kein eigener
+allgemeiner State-Manager entwickelt.
+
+Kurzlebige Zustände wie ein geöffnetes Bestätigungsfenster bleiben lokal in
+der jeweiligen Komponente. Häufige Partikelbilder sollen nicht die gesamte
 Komponentenhierarchie neu rendern:
 
 - Canvas-Renderer erhält Partikelnachrichten direkt;
@@ -1330,9 +1602,9 @@ Komponentenhierarchie neu rendern:
 - Materialrevisionen aktualisieren nur die Reaktoransicht;
 - Histogrammrevisionen aktualisieren nur Diagramme.
 
-Ein allgemeines Redux-ähnliches Framework ist dafür nicht erforderlich.
+Canvas-Renderer erhalten große Renderdaten direkt vom `workerClient`.
 
-### 9.11 Speicherung und Datenschutz
+### 9.12 Speicherung und Datenschutz
 
 `localStorage` darf ausschließlich speichern:
 
@@ -1344,7 +1616,7 @@ Ein allgemeines Redux-ähnliches Framework ist dafür nicht erforderlich.
 Der vollständige Simulationszustand wird nicht automatisch gespeichert.
 Es gibt keine Netzwerkübertragung, Cookies, Analyse- oder Trackingdienste.
 
-### 9.12 Fehlerverhalten
+### 9.13 Fehlerverhalten
 
 - Erwartete ungültige Bedienhandlungen führen zu `rejected`, nicht zu
   Exceptions.
@@ -1410,6 +1682,18 @@ Grenzwerte und Zustandsübergänge. Zufallsabhängige Verzweigungen verwenden
 entweder einen festen LCG-Seed oder einen injizierten Sequenzgenerator.
 
 Der reine Simulationskern wird ohne Worker und ohne reale Timer getestet.
+
+Die Tests sind zweigeteilt:
+
+- gemeinsame Vertrags-/Laufzeittests, die mit einem kleinen Testmodell prüfen,
+  dass Model Host, Worker, Befehle und Snapshots keine Originalphysik
+  voraussetzen;
+- die dauerhaft eingefrorene Kompatibilitätssuite für `original-1.2` mit den
+  nachfolgenden konkreten Regeln.
+
+Ein späteres Physikmodell erhält eigene fachliche Referenzen, Validierungsdaten
+und Tests. Seine Ergebnisse werden nicht gegen die erwarteten Resultate des
+Originalmodells getestet.
 
 ### 11.2 Unit-Tests
 
@@ -1518,6 +1802,13 @@ Nach beliebigen gültigen Befehls- und Schrittfolgen gilt:
 7. Alarmtelemetrie wird unabhängig von regulärer Drosselung sofort geliefert.
 8. Transferierte Snapshot-Puffer beschädigen den Neutronenpool nicht.
 9. Worker-Reset mit gleichem Seed ist reproduzierbar.
+10. Jede Nachricht trägt zur aktiven Instanz passende Modell- und
+    Schemaversionen.
+11. Ein kleines Testmodell mit anderer Rastergröße, anderen Zelltyp-IDs und
+    anderen Punktkategorien durchläuft Model Host und gemeinsame Renderer,
+    ohne Originalkonstanten zu benötigen.
+12. Eine unbekannte Modellkennung wird bei Initialisierung klar abgelehnt und
+    lädt keinen fremden Code nach.
 
 ### 11.5 End-to-End-Szenarien
 
@@ -1633,7 +1924,8 @@ Die Version ist fachlich fertig, wenn:
 1. alle Pflichtfunktionen aus Abschnitt 4.1 implementiert sind;
 2. sämtliche Regeln aus Abschnitt 6 über automatisierte Tests abgesichert
    sind;
-3. gleiche Seeds und Befehlsfolgen reproduzierbare Ergebnisse liefern;
+3. gleiche Modellkennung, Modellversion, Konfiguration, Seeds und
+   Befehlsfolgen reproduzierbare Ergebnisse liefern;
 4. kein fachlicher Zufallsaufruf aus Rendering oder UI stammt;
 5. die UI bei 100.000 Neutronen bedienbar bleibt, auch wenn Schritte langsamer
    werden;
@@ -1643,12 +1935,17 @@ Die Version ist fachlich fertig, wenn:
 9. der Produktionsbuild aus statischen Dateien besteht und keine
    Netzwerkverbindung benötigt;
 10. Unit-, Integrations-, E2E- und Accessibility-Suite grün sind;
-11. es keine bekannten unkommentierten Abweichungen von diesem Entwurf gibt.
+11. es keine bekannten unkommentierten Abweichungen von diesem Entwurf gibt;
+12. Model Host und gemeinsame Renderer den Modellvertrag mit einem kleinen
+    abweichenden Testmodell erfüllen;
+13. die Konstanten und Fachbefehle des Originals nur im Modul
+    `models/original12` beziehungsweise dessen UI-Adapter fest eingebaut sind.
 
 ## 13. Empfohlene Umsetzungsreihenfolge
 
 ### Phase 1: Fachliches Fundament
 
+- minimalen Modellvertrag und Metadaten für `original-1.2` definieren;
 - Konstanten, Zelltypen und LCG;
 - Geometrie und Stabgruppen;
 - vorallokierter Neutronenpool;
@@ -1670,9 +1967,10 @@ Ergebnis: fachlich vollständige Simulation ohne fertiges Design.
 
 ### Phase 3: Worker und Protokoll
 
+- generischen Model Host mit genau einer Modellinstanz;
 - Scheduler;
 - Befehlsqueue;
-- versionierte Nachrichten;
+- nach Modell und Schema versionierte Nachrichten;
 - Snapshot-Puffer und Publikationsdrosselung;
 - Worker-Integrationstests.
 
@@ -1681,8 +1979,8 @@ Ergebnis: Simulation läuft nebenläufig und bleibt per Tests direkt aufrufbar.
 ### Phase 4: Visuelle Basis
 
 - App-Shell und responsives Raster;
-- Material- und Partikel-Canvas;
-- Instrumente, Stäbe und Optionen;
+- gemeinsame Raster-/Punkt-Renderer;
+- `Original12Dashboard` mit Instrumenten, Stäben und Optionen;
 - Alarmleiste;
 - deutsche/englische Texte.
 
@@ -1713,7 +2011,13 @@ Ein implementierender Agent soll:
    ausführen;
 9. bei Unklarheiten zuerst Analyse und diese Spezifikation abgleichen;
 10. keine Abweichung allein deshalb einbauen, weil eine Bibliothek ein anderes
-    Standardverhalten besitzt.
+    Standardverhalten besitzt;
+11. gemeinsame Laufzeit und Renderer nicht an Rastergröße, Materialcodes oder
+    Partikelarten des Originals koppeln;
+12. physikalische Verbesserungen nicht in `original12` einbauen, sondern als
+    neues versioniertes Modell beginnen;
+13. den Modellvertrag nur dann erweitern, wenn ein konkretes neues Modell eine
+    nachweisbare Anforderung dafür besitzt.
 
 ## 15. Zu bestätigende Produktentscheidungen
 
@@ -1722,7 +2026,9 @@ genannte Vorgabe gilt, bis sie in einer Iteration geändert wird:
 
 | Frage | Vorgabe dieses Entwurfs |
 |---|---|
-| Technologiestack | TypeScript, React, Vite, Canvas 2D, Web Worker |
+| Technologiestack | TypeScript, React und Vite; Canvas, Worker und CSS als native Browser-APIs |
+| Abhängigkeitsumfang | keine State-, UI-, Chart-, CSS-, Router-, i18n- oder Plugin-Frameworks |
+| Modellarchitektur | Version 1 enthält nur `original-1.2`; neue Physik kommt später als separates versioniertes Modell |
 | Startet die Simulation automatisch? | ja, wie das Original; Pause ist sofort verfügbar |
 | Standardsprache | Browserpräferenz Deutsch/Englisch |
 | Diagramme | immer sichtbar, automatische 100-Schritt-Fenster |
