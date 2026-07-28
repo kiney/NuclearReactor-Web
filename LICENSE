@@ -1,0 +1,42 @@
+NuclearReactor Web
+Copyright (C) 2026 NuclearReactor Web contributors
+
+LICENSE SCOPE AND THIRD-PARTY EXCEPTION
+
+The WTFPL below applies only to the original source code, tests, build files,
+and documentation created for NuclearReactor Web.
+
+It does NOT apply to third-party or historical original material committed
+alongside the reimplementation. Excluded material includes, without
+limitation:
+
+  - NuclearReactor_1_2.exe;
+  - NucReact_1_1.jpg;
+  - screenshots derived from the original Windows application; and
+  - any other material identified as originating from the historical
+    NuclearReactor programs.
+
+The historical NuclearReactor programs were written by
+Prof. Horst-Michael Prasser and published by the former
+KTG e. V., Sektion Sachsen. No explicit license for those original programs
+or artifacts has been found. Their copyright and all applicable rights remain
+with their respective rights holders. Their presence in this repository does
+not grant permission to copy, modify, redistribute, or relicense them.
+
+This notice is part of the licensing terms for this repository and takes
+precedence over the WTFPL text below when determining which files it covers.
+
+
+            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+                    Version 2, December 2004
+
+ Copyright (C) 2004 Sam Hocevar <sam@hocevar.net>
+
+ Everyone is permitted to copy and distribute verbatim or modified
+ copies of this license document, and changing it is allowed as long
+ as the name is changed.
+
+            DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+   TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+
+  0. You just DO WHAT THE FUCK YOU WANT TO.
