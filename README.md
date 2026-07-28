@@ -27,11 +27,12 @@ Node.js and npm are required to build and serve the application. It has been
 tested with Node.js 20.19.
 
 ```sh
-cd /home/kiney/download/reaktorsimulator/ng
 npm install
 npm run build
 npm run preview
 ```
+
+Run these commands from the repository root.
 
 Open the address printed in the terminal, normally:
 
@@ -72,25 +73,24 @@ server are not required on the destination system.
    npm run build
    ```
 
-2. Copy the **contents** of `dist/` into a dedicated web root:
+2. Copy the **contents** of `dist/` into the dedicated document root configured
+   in your web server:
 
    ```sh
-   rsync -a --delete dist/ /var/www/nuclear-reactor/
+   rsync -a --delete dist/ DEPLOYMENT_DIRECTORY/
    ```
 
-3. Configure the web server to serve that directory. A minimal nginx
-   configuration is:
+   Replace `DEPLOYMENT_DIRECTORY` with the actual target directory.
+
+3. Configure the web server to serve that directory. The relevant part of an
+   nginx configuration is:
 
    ```nginx
-   server {
-       listen 80;
-       server_name reactor.example.org;
-       root /var/www/nuclear-reactor;
-       index index.html;
+   root DEPLOYMENT_DIRECTORY;
+   index index.html;
 
-       location / {
-           try_files $uri $uri/ =404;
-       }
+   location / {
+       try_files $uri $uri/ =404;
    }
    ```
 
@@ -113,7 +113,7 @@ path when building:
 
 ```sh
 npm run build -- --base=/reactor/
-rsync -a --delete dist/ /var/www/html/reactor/
+rsync -a --delete dist/ DEPLOYMENT_DIRECTORY/reactor/
 ```
 
 The leading and trailing slashes in `/reactor/` are significant. Rebuild after
@@ -142,7 +142,9 @@ npm run benchmark
   interaction flows, responsive layouts, and axe-core in 23 tests.
 - Six golden-master screenshots cover the specified visual states.
 
-On Debian, the Playwright configuration uses `/usr/bin/chromium`.
+On Debian, the Playwright configuration automatically looks for the
+`chromium` executable. `PLAYWRIGHT_CHROMIUM_PATH` can be used to select a
+different executable.
 
 ## History and provenance
 
@@ -206,11 +208,12 @@ Zum Bauen und Starten werden Node.js und npm benötigt. Getestet wurde mit
 Node.js 20.19.
 
 ```sh
-cd /home/kiney/download/reaktorsimulator/ng
 npm install
 npm run build
 npm run preview
 ```
+
+Diese Befehle werden im Wurzelverzeichnis des Repositorys ausgeführt.
 
 Anschließend die im Terminal genannte Adresse öffnen, normalerweise:
 
@@ -252,25 +255,25 @@ Zielsystem werden weder Node.js noch ein Anwendungsserver benötigt.
    npm run build
    ```
 
-2. Den **Inhalt** von `dist/` in ein dafür reserviertes Webroot kopieren:
+2. Den **Inhalt** von `dist/` in das im Webserver konfigurierte
+   Auslieferungsverzeichnis kopieren:
 
    ```sh
-   rsync -a --delete dist/ /var/www/nuclear-reactor/
+   rsync -a --delete dist/ DEPLOYMENT_DIRECTORY/
    ```
 
+   `DEPLOYMENT_DIRECTORY` muss durch das tatsächliche Zielverzeichnis ersetzt
+   werden.
+
 3. Den Webserver so konfigurieren, dass dieses Verzeichnis ausgeliefert wird.
-   Ein minimales nginx-Beispiel:
+   Der relevante Teil einer nginx-Konfiguration:
 
    ```nginx
-   server {
-       listen 80;
-       server_name reactor.example.org;
-       root /var/www/nuclear-reactor;
-       index index.html;
+   root DEPLOYMENT_DIRECTORY;
+   index index.html;
 
-       location / {
-           try_files $uri $uri/ =404;
-       }
+   location / {
+       try_files $uri $uri/ =404;
    }
    ```
 
@@ -295,7 +298,7 @@ beim Build angegeben werden:
 
 ```sh
 npm run build -- --base=/reaktor/
-rsync -a --delete dist/ /var/www/html/reaktor/
+rsync -a --delete dist/ DEPLOYMENT_DIRECTORY/reaktor/
 ```
 
 Der führende und der abschließende Schrägstrich in `/reaktor/` sind wichtig.
@@ -325,7 +328,9 @@ npm run benchmark
   Workerbetrieb, Bedienabläufen, Responsivität und axe-core in 23 Prüfungen.
 - Sechs Golden-Master sichern die spezifizierten visuellen Hauptzustände ab.
 
-Unter Debian verwendet die Playwright-Konfiguration `/usr/bin/chromium`.
+Unter Debian sucht die Playwright-Konfiguration automatisch nach dem Programm
+`chromium`. Mit `PLAYWRIGHT_CHROMIUM_PATH` kann ein anderes Programm gewählt
+werden.
 
 ## Geschichte und Herkunft
 
