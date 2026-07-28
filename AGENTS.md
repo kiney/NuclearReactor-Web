@@ -8,3 +8,6 @@ Die Entwicklung läuft auf debian 13. Wenn du tools brauchst z.B. für die Analy
 bevorzuge solche die in den nativen Debian Paketquellen verfügbar sind - bitte den Benutzer
 sie zu installieren, installiere nie selbst neue Software.
 Du darfst zur Analyse temporäre python skripte erstellen.
+
+In docs/ANALYSE_NUCLEARREACTOR_1_2.md findest du die detaillierte Dokumentation
+zur bisherigen Analyse.
