@@ -23,10 +23,12 @@ import {
 import { createRandomSeed, parseSeed } from "./seed";
 import { useSimulationSnapshot } from "./useSimulationSnapshot";
 import { WorkerClient } from "./workerClient";
+import { isKineyDeployment } from "./deploymentHost";
 import type { DiagnosticScenario } from "../runtime/protocol";
 
 const client = new WorkerClient();
 const WEB_VERSION = "1.0.0";
+const IMPRINT_URL = "https://blog.kiney.de/impressum/";
 
 function reasonKey(reason: ScramReason): TranslationKey {
   return {
@@ -202,6 +204,7 @@ function InstrumentPanel({
 
 export function App() {
   const state = useSimulationSnapshot(client);
+  const showImprint = isKineyDeployment(window.location.hostname);
   const [language, setLanguage] = useState<Language>(initialLanguage);
   const [initialSeed] = useState(() => {
     const requestedSeed = import.meta.env.DEV
@@ -835,6 +838,12 @@ export function App() {
         <p>{t("helpText")}</p>
         <p>{t("physicsHelp")}</p>
       </details>
+
+      {showImprint && (
+        <footer className="app-footer">
+          <a href={IMPRINT_URL}>{t("imprint")}</a>
+        </footer>
+      )}
     </main>
   );
 }
