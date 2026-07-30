@@ -139,9 +139,9 @@ npm run benchmark
 ```
 
 - Vitest covers model rules, boundary values, invariants, the generic model
-  host, and the shared rendering contract in 88 tests.
+  host, and the shared rendering contract in 98 tests.
 - Playwright covers the real Chromium application, Web Worker operation,
-  interaction flows, responsive layouts, and axe-core in 23 tests.
+  interaction flows, responsive layouts, and axe-core in 24 tests.
 - Six golden-master screenshots cover the specified visual states.
 
 On Debian, the Playwright configuration automatically looks for the
