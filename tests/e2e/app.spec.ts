@@ -69,6 +69,14 @@ test("lädt rein lokal und bietet Grundbedienung", async ({ page }, testInfo) =>
   expect(externalResources).toEqual([]);
 });
 
+test("verlinkt immer den Upstream, aber lokal kein Impressum", async ({ page }) => {
+  await expect(page.getByRole("link", { name: "Upstream auf GitHub" })).toHaveAttribute(
+    "href",
+    "https://github.com/kiney/NuclearReactor-Web",
+  );
+  await expect(page.getByRole("link", { name: "Impressum" })).toHaveCount(0);
+});
+
 test("Sicherheitsstäbe, Steuerstäbe und manueller SCRAM", async ({ page }) => {
   await page
     .getByRole("button", { name: "Pause", exact: true })

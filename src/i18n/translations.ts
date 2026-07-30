@@ -104,6 +104,7 @@ const de = {
   workerError: "Die Simulation wurde wegen eines Worker-Fehlers pausiert.",
   restartWorker: "Worker mit gleichem Seed neu starten",
   help: "Info und Modellgrenzen",
+  upstream: "Upstream auf GitHub",
   imprint: "Impressum",
   helpText:
     "Browserbasierte Reimplementierung des vereinfachten NuclearReactor-1.2-Modells von H.-M. Prasser (historisch: www.ktg-sachsen.de). Kein realistischer Reaktorsimulator und keine Betriebs- oder Sicherheitssoftware für reale Anlagen.",
@@ -214,6 +215,7 @@ const en: Record<keyof typeof de, string> = {
   workerError: "The simulation was paused because the worker failed.",
   restartWorker: "Restart worker with the same seed",
   help: "Information and model limits",
+  upstream: "Upstream on GitHub",
   imprint: "Legal notice",
   helpText:
     "Browser reimplementation of the simplified NuclearReactor 1.2 model by H.-M. Prasser (historically: www.ktg-sachsen.de). It is not a realistic reactor simulator or operational or safety software for real facilities.",

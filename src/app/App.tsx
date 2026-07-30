@@ -29,6 +29,7 @@ import type { DiagnosticScenario } from "../runtime/protocol";
 const client = new WorkerClient();
 const WEB_VERSION = "1.0.0";
 const IMPRINT_URL = "https://blog.kiney.de/impressum/";
+const UPSTREAM_URL = "https://github.com/kiney/NuclearReactor-Web";
 
 function reasonKey(reason: ScramReason): TranslationKey {
   return {
@@ -839,11 +840,15 @@ export function App() {
         <p>{t("physicsHelp")}</p>
       </details>
 
-      {showImprint && (
-        <footer className="app-footer">
-          <a href={IMPRINT_URL}>{t("imprint")}</a>
-        </footer>
-      )}
+      <footer className="app-footer">
+        <a href={UPSTREAM_URL}>{t("upstream")}</a>
+        {showImprint && (
+          <>
+            <span aria-hidden="true">·</span>
+            <a href={IMPRINT_URL}>{t("imprint")}</a>
+          </>
+        )}
+      </footer>
     </main>
   );
 }
