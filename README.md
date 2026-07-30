@@ -7,6 +7,8 @@ that runs entirely in a web browser. Its two-dimensional model visualizes
 neutron movement, moderation, fission, power development, and the behavior of
 a simplified protection system.
 
+**[Try the deployed version](https://reactorsim.kiney.de/)**
+
 It includes:
 
 - safety rods, control rods, and manual and automatic SCRAM;
@@ -187,6 +189,8 @@ NuclearReactor Web ist ein interaktiver, vereinfachter Reaktorsimulator, der
 vollständig im Browser läuft. In einem zweidimensionalen Modell lassen sich
 Neutronenbewegung, Moderation, Spaltungen, Leistungsentwicklung und das
 Verhalten eines vereinfachten Schutzsystems beobachten.
+
+**[Deployte Version ausprobieren](https://reactorsim.kiney.de/)**
 
 Die Anwendung bietet:
 
