@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   HistogramCanvas,
   type HistogramVisibility,
@@ -34,6 +34,105 @@ const client = new WorkerClient();
 const WEB_VERSION = "1.0.0";
 const IMPRINT_URL = "https://blog.kiney.de/impressum/";
 const UPSTREAM_URL = "https://github.com/kiney/NuclearReactor-Web";
+const ROD_HOLD_DELAY_MS = 400;
+const ROD_REPEAT_INTERVAL_MS = 180;
+
+function ControlRodButton({
+  direction,
+  disabled,
+  describedBy,
+  children,
+}: {
+  direction: "in" | "out";
+  disabled: boolean;
+  describedBy?: string;
+  children: React.ReactNode;
+}) {
+  const holdTimeout = useRef<number | null>(null);
+  const repeatInterval = useRef<number | null>(null);
+  const active = useRef(false);
+  const suppressClick = useRef(false);
+
+  const moveOneStep = () => {
+    client.model({ type: "move-control-rods", direction });
+  };
+  const stopMoving = () => {
+    active.current = false;
+    if (holdTimeout.current !== null) {
+      window.clearTimeout(holdTimeout.current);
+      holdTimeout.current = null;
+    }
+    if (repeatInterval.current !== null) {
+      window.clearInterval(repeatInterval.current);
+      repeatInterval.current = null;
+    }
+  };
+  const startMoving = () => {
+    if (disabled || active.current) return;
+    active.current = true;
+    suppressClick.current = true;
+    moveOneStep();
+    holdTimeout.current = window.setTimeout(() => {
+      moveOneStep();
+      repeatInterval.current = window.setInterval(
+        moveOneStep,
+        ROD_REPEAT_INTERVAL_MS,
+      );
+    }, ROD_HOLD_DELAY_MS);
+  };
+
+  useEffect(() => {
+    if (disabled) stopMoving();
+  }, [disabled]);
+
+  useEffect(() => {
+    const stopOnVisibilityLoss = () => {
+      if (document.visibilityState !== "visible") stopMoving();
+    };
+    window.addEventListener("blur", stopMoving);
+    document.addEventListener("visibilitychange", stopOnVisibilityLoss);
+    return () => {
+      stopMoving();
+      window.removeEventListener("blur", stopMoving);
+      document.removeEventListener("visibilitychange", stopOnVisibilityLoss);
+    };
+  }, []);
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-describedby={describedBy}
+      onPointerDown={(event) => {
+        if (event.button !== 0) return;
+        event.currentTarget.setPointerCapture(event.pointerId);
+        startMoving();
+      }}
+      onPointerUp={stopMoving}
+      onPointerCancel={stopMoving}
+      onLostPointerCapture={stopMoving}
+      onKeyDown={(event) => {
+        if (event.key !== " " && event.key !== "Enter") return;
+        event.preventDefault();
+        startMoving();
+      }}
+      onKeyUp={(event) => {
+        if (event.key !== " " && event.key !== "Enter") return;
+        event.preventDefault();
+        stopMoving();
+      }}
+      onClick={() => {
+        if (suppressClick.current) {
+          suppressClick.current = false;
+          return;
+        }
+        moveOneStep();
+      }}
+    >
+      {children}
+    </button>
+  );
+}
 
 function reasonKey(reason: ScramReason): TranslationKey {
   return {
@@ -658,39 +757,28 @@ export function App() {
               <span style={{ height: `${100 - snapshot.controlRodPercent}%` }} />
             </div>
             <div className="button-row">
-              <button
-                type="button"
+              <ControlRodButton
+                direction="in"
                 disabled={snapshot.controlRodEnd === ROD_INSERTED_END}
-                onClick={() =>
-                  client.model({
-                    type: "move-control-rods",
-                    direction: "in",
-                  })
-                }
               >
                 ↓ {t("insert")}
-              </button>
-              <button
-                type="button"
+              </ControlRodButton>
+              <ControlRodButton
+                direction="out"
                 disabled={
                   snapshot.controlRodEnd === ROD_WITHDRAWN_END ||
                   snapshot.protectionState !== "armed"
                 }
-                aria-describedby={
+                describedBy={
                   snapshot.protectionState !== "armed"
                     ? "armed-lock-help"
                     : undefined
                 }
-                onClick={() =>
-                  client.model({
-                    type: "move-control-rods",
-                    direction: "out",
-                  })
-                }
               >
                 ↑ {t("withdraw")}
-              </button>
+              </ControlRodButton>
             </div>
+            <p className="muted rod-hold-help">{t("rodHoldHelp")}</p>
             <p id="armed-lock-help" className="muted">
               {t("armedRequired")}
             </p>

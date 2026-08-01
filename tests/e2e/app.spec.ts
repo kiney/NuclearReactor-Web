@@ -92,6 +92,43 @@ test("Sicherheitsstäbe, Steuerstäbe und manueller SCRAM", async ({ page }) => 
   await expect(page.getByText(/SCRAM ausgelöst: manuelle Auslösung/)).toBeVisible();
 });
 
+test("bewegt Steuerstäbe beim Halten begrenzt und stoppt beim Loslassen", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Sicherheitsstäbe ausfahren" })
+    .click();
+  const withdraw = page.getByRole("button", { name: /Ausfahren/ }).last();
+  const displayedPercent = page.locator(
+    '[aria-labelledby="rods-title"] .section-heading strong',
+  );
+  const percent = async () =>
+    Number(
+      ((await displayedPercent.textContent()) ?? "0")
+        .replace("%", "")
+        .replace(",", ".")
+        .trim(),
+    );
+
+  await withdraw.click();
+  await expect.poll(percent).toBeGreaterThan(0);
+  const afterClick = await percent();
+
+  await withdraw.hover();
+  await page.mouse.down();
+  await page.waitForTimeout(850);
+  await page.mouse.up();
+  await expect.poll(percent).toBeGreaterThan(afterClick);
+  const afterHold = await percent();
+  expect(afterHold - afterClick).toBeLessThanOrEqual(8);
+
+  await page.waitForTimeout(150);
+  const afterPendingSnapshot = await percent();
+  await page.waitForTimeout(450);
+  expect(await percent()).toBe(afterPendingSnapshot);
+});
+
 test("Messbereich verriegelt Sicherheitsstäbe", async ({ page }) => {
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await page.getByRole("button", { name: /Bereich höher/ }).click();
