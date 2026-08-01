@@ -84,6 +84,9 @@ test("visuell: zwei abgeschlossene Diagrammfenster", async ({ page }) => {
   );
   await expect(page).toHaveScreenshot("completed-histograms.png", {
     ...stableScreenshot,
+    // The running worker can pass step 205 slightly before pause is processed,
+    // changing a thin part of the live plot without changing its layout/state.
+    maxDiffPixels: 2_500,
   });
 });
 

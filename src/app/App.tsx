@@ -25,6 +25,10 @@ import { useSimulationSnapshot } from "./useSimulationSnapshot";
 import { WorkerClient } from "./workerClient";
 import { isKineyDeployment } from "./deploymentHost";
 import type { DiagnosticScenario } from "../runtime/protocol";
+import {
+  getExplanation,
+  type ExplanationId,
+} from "./explanations";
 
 const client = new WorkerClient();
 const WEB_VERSION = "1.0.0";
@@ -120,14 +124,16 @@ function InstrumentPanel({
   snapshot,
   language,
   t,
+  explain,
 }: {
   snapshot: Original12Snapshot;
   language: Language;
   t: (key: TranslationKey) => string;
+  explain: (id: ExplanationId, keyboardTarget?: boolean) => ExplainTargetProps;
 }) {
   return (
     <section className="instrument-grid" aria-label={t("detector")}>
-      <article className="card instrument">
+      <article className="card instrument" {...explain("detector", true)}>
         <h2>{t("detector")}</h2>
         <Gauge
           label={t("detector")}
@@ -150,7 +156,7 @@ function InstrumentPanel({
             <strong>{format(snapshot.neutronCount, language)}</strong>
           </span>
         </div>
-        <div className="button-row">
+        <div className="button-row" {...explain("range")}>
           <button
             type="button"
             disabled={snapshot.detectorRangeIndex === 2}
@@ -172,7 +178,7 @@ function InstrumentPanel({
         </div>
       </article>
 
-      <article className="card instrument">
+      <article className="card instrument" {...explain("power", true)}>
         <h2>{t("power")}</h2>
         <Gauge
           label={t("power")}
@@ -186,7 +192,7 @@ function InstrumentPanel({
         <p className="muted">{t("powerHelp")}</p>
       </article>
 
-      <article className="card instrument">
+      <article className="card instrument" {...explain("fissions", true)}>
         <h2>{t("fissions")}</h2>
         <div className="large-metrics">
           <span>
@@ -203,10 +209,65 @@ function InstrumentPanel({
   );
 }
 
+type ExplainTargetProps = {
+  readonly onPointerMove?: () => void;
+  readonly onFocusCapture?: () => void;
+  readonly onClickCapture?: () => void;
+  readonly "data-explainable"?: true;
+  readonly "data-explanation-active"?: true;
+  readonly tabIndex?: 0;
+};
+
+function ExplanationPanel({
+  explanationId,
+  snapshot,
+  language,
+  t,
+}: {
+  explanationId: ExplanationId;
+  snapshot: Original12Snapshot;
+  language: Language;
+  t: (key: TranslationKey) => string;
+}) {
+  const explanation = getExplanation(explanationId, snapshot, language);
+  return (
+    <section
+      className="card explanation-panel"
+      aria-label={t("explanationPanel")}
+    >
+      <p className="eyebrow">{t("explanationPanel")}</p>
+      <h2 aria-live="polite">{explanation.title}</h2>
+      <dl>
+        <div>
+          <dt>{t("whatIsIt")}</dt>
+          <dd>{explanation.what}</dd>
+        </div>
+        <div>
+          <dt>{t("whatDoesItDo")}</dt>
+          <dd>{explanation.effect}</dd>
+        </div>
+        <div>
+          <dt>{t("dependsOn")}</dt>
+          <dd>{explanation.dependsOn}</dd>
+        </div>
+        <div className="explanation-current">
+          <dt>{t("currentState")}</dt>
+          <dd>{explanation.current}</dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
+
 export function App() {
   const state = useSimulationSnapshot(client);
   const showImprint = isKineyDeployment(window.location.hostname);
   const [language, setLanguage] = useState<Language>(initialLanguage);
+  const [explanationMode, setExplanationMode] = useState(
+    () => localStorage.getItem("nuclear-reactor-explanation-mode") === "true",
+  );
+  const [activeExplanation, setActiveExplanation] =
+    useState<ExplanationId>("overview");
   const [initialSeed] = useState(() => {
     const requestedSeed = import.meta.env.DEV
       ? new URLSearchParams(window.location.search).get("diagnosticSeed")
@@ -346,6 +407,21 @@ export function App() {
         : snapshot.detectorWarning
           ? `${t("alarmInserted")} · ${t("detectorWarning")}`
           : t("alarmInserted");
+  const explain = (
+    id: ExplanationId,
+    keyboardTarget = false,
+  ): ExplainTargetProps =>
+    explanationMode
+      ? {
+          onPointerMove: () => setActiveExplanation(id),
+          onFocusCapture: () => setActiveExplanation(id),
+          onClickCapture: () => setActiveExplanation(id),
+          "data-explainable": true,
+          "data-explanation-active":
+            activeExplanation === id ? true : undefined,
+          ...(keyboardTarget ? { tabIndex: 0 as const } : {}),
+        }
+      : {};
 
   return (
     <main className="app-shell">
@@ -383,6 +459,22 @@ export function App() {
             onClick={() => client.runtime({ type: "step-once" })}
           >
             {t("stepOnce")}
+          </button>
+          <button
+            type="button"
+            className="explanation-toggle"
+            aria-pressed={explanationMode}
+            onClick={() => {
+              const enabled = !explanationMode;
+              setExplanationMode(enabled);
+              setActiveExplanation("overview");
+              localStorage.setItem(
+                "nuclear-reactor-explanation-mode",
+                String(enabled),
+              );
+            }}
+          >
+            <span aria-hidden="true">ⓘ</span> {t("explainMode")}
           </button>
           <label>
             <span>{t("speed")}</span>
@@ -453,7 +545,11 @@ export function App() {
       )}
 
       <div className="workspace">
-        <section className="card reactor-panel" aria-labelledby="reactor-title">
+        <section
+          className="card reactor-panel"
+          aria-labelledby="reactor-title"
+          {...explain("reactor", true)}
+        >
           <div className="section-heading">
             <h2 id="reactor-title">{t("reactor")}</h2>
             <div className="chips">
@@ -500,9 +596,27 @@ export function App() {
         </section>
 
         <aside className="control-column">
-          <InstrumentPanel snapshot={snapshot} language={language} t={t} />
+          {explanationMode && (
+            <ExplanationPanel
+              explanationId={activeExplanation}
+              snapshot={snapshot}
+              language={language}
+              t={t}
+            />
+          )}
 
-          <section className="card controls" aria-labelledby="safety-title">
+          <InstrumentPanel
+            snapshot={snapshot}
+            language={language}
+            t={t}
+            explain={explain}
+          />
+
+          <section
+            className="card controls"
+            aria-labelledby="safety-title"
+            {...explain("safety", true)}
+          >
             <h2 id="safety-title">{t("safety")}</h2>
             <button
               type="button"
@@ -529,7 +643,11 @@ export function App() {
             </p>
           </section>
 
-          <section className="card controls" aria-labelledby="rods-title">
+          <section
+            className="card controls"
+            aria-labelledby="rods-title"
+            {...explain("controlRods", true)}
+          >
             <div className="section-heading">
               <h2 id="rods-title">{t("controlRods")}</h2>
               <strong>
@@ -584,7 +702,11 @@ export function App() {
               ["reflector", snapshot.reflectorEnabled, "set-reflector"],
               ["burnout", snapshot.burnoutEnabled, "set-burnout"],
             ].map(([label, enabled, type]) => (
-              <label className="toggle" key={String(type)}>
+              <label
+                className="toggle"
+                key={String(type)}
+                {...explain(label as "source" | "reflector" | "burnout")}
+              >
                 <span>{t(label as TranslationKey)}</span>
                 <input
                   type="checkbox"
@@ -603,7 +725,11 @@ export function App() {
             ))}
             {!snapshot.moderatorDrained &&
               (confirmDrain ? (
-                <div className="confirm-panel" role="alertdialog">
+                <div
+                  className="confirm-panel"
+                  role="alertdialog"
+                  {...explain("moderatorDrain")}
+                >
                   <p>{t("drainQuestion")}</p>
                   <div className="button-row">
                     <button
@@ -628,6 +754,7 @@ export function App() {
                 <button
                   type="button"
                   className="danger-secondary"
+                  {...explain("moderatorDrain")}
                   onClick={() => setConfirmDrain(true)}
                 >
                   {t("drain")}
@@ -645,6 +772,7 @@ export function App() {
           <article
             className="card histogram-panel"
             key={String(title)}
+            {...explain("histograms")}
             data-has-current={Boolean(
               (histogram as Original12Snapshot["horizontalHistogram"]).current,
             )}

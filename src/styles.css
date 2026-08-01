@@ -57,6 +57,12 @@ button.primary {
   background: #2864c7;
 }
 
+.explanation-toggle[aria-pressed="true"] {
+  border-color: #72a7f5;
+  background: #234c83;
+  box-shadow: 0 0 0 2px rgb(75 128 209 / 22%);
+}
+
 button.scram,
 button.danger {
   border-color: #ff8b84;
@@ -361,6 +367,74 @@ h2 {
   display: grid;
   align-content: start;
   gap: 12px;
+}
+
+.explanation-panel {
+  position: sticky;
+  z-index: 3;
+  top: 12px;
+  padding: 16px;
+  border-color: #4b80d1;
+  background: #122541;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 28%);
+}
+
+.explanation-panel .eyebrow {
+  margin-bottom: 5px;
+  color: #a9c8f6;
+}
+
+.explanation-panel h2 {
+  margin-bottom: 14px;
+  color: #fff;
+  font-size: 1.18rem;
+}
+
+.explanation-panel dl {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.explanation-panel dl div {
+  display: grid;
+  gap: 3px;
+}
+
+.explanation-panel dt {
+  color: #a9c8f6;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.explanation-panel dd {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  line-height: 1.42;
+}
+
+.explanation-panel .explanation-current {
+  border: 1px solid #41648f;
+  border-radius: 8px;
+  padding: 10px;
+  background: #172f50;
+}
+
+[data-explainable="true"] {
+  cursor: help;
+}
+
+[data-explanation-active="true"] {
+  outline: 3px solid #72a7f5;
+  outline-offset: 3px;
+}
+
+button[data-explainable="true"],
+label[data-explainable="true"] {
+  cursor: pointer;
 }
 
 .instrument-grid {
@@ -692,6 +766,10 @@ h2 {
   .instrument-grid {
     grid-column: 1 / -1;
   }
+
+  .explanation-panel {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 759px) {
@@ -745,6 +823,12 @@ h2 {
 
   .reset-histograms {
     grid-column: auto;
+  }
+
+  .explanation-panel {
+    top: 76px;
+    max-height: calc(100vh - 92px);
+    overflow-y: auto;
   }
 }
 

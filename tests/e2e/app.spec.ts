@@ -148,6 +148,49 @@ test("übersetzt die Oberfläche und bleibt schmal bedienbar", async ({ page }) 
   await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
 });
 
+test("Erklärmodus reagiert auf Hover, Tastatur und den aktuellen Zustand", async ({
+  page,
+}) => {
+  const toggle = page.getByRole("button", {
+    name: "Erklärmodus",
+    exact: true,
+  });
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+
+  const panel = page.getByRole("region", { name: "Interaktive Erklärung" });
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole("heading")).toHaveText("Simulation erkunden");
+
+  await page.locator(".instrument").first().hover();
+  await expect(panel.getByRole("heading")).toHaveText("Neutronendetektor");
+  await expect(panel).toContainText("Neutronenzahl");
+
+  const safety = page.getByRole("button", {
+    name: "Sicherheitsstäbe ausfahren",
+  });
+  await page.getByRole("button", { name: /Bereich höher/ }).click();
+  await expect(safety).toBeDisabled();
+  const safetyCard = page.locator(".controls").first();
+  await safetyCard.focus();
+  await expect(panel.getByRole("heading")).toHaveText("Sicherheitskreis");
+  await expect(panel).toContainText(
+    "Aktuell gesperrt: zuerst Messbereich 10² einstellen.",
+  );
+
+  await page.getByLabel("Sprache").selectOption("en");
+  await safetyCard.focus();
+  await expect(
+    page.getByRole("region", { name: "Interactive explanation" }),
+  ).toContainText("Currently locked: select the 10² range first.");
+
+  await page.getByRole("button", { name: "Explanation mode" }).click();
+  await expect(
+    page.getByRole("region", { name: "Interactive explanation" }),
+  ).toHaveCount(0);
+});
+
 test("schließt zwei Diagrammfenster ab und setzt nur Messungen zurück", async ({
   page,
 }) => {
@@ -210,6 +253,12 @@ test("hat in den Hauptzuständen keine schweren axe-Befunde", async ({ page }) =
     );
   };
   expect(await audit()).toEqual([]);
+  await page.getByRole("button", { name: "Erklärmodus" }).click();
+  await expect(
+    page.getByRole("region", { name: "Interaktive Erklärung" }),
+  ).toBeVisible();
+  expect(await audit()).toEqual([]);
+  await page.getByRole("button", { name: "Erklärmodus" }).click();
   await page
     .getByRole("button", { name: "Sicherheitsstäbe ausfahren" })
     .click();
